@@ -1,3 +1,5 @@
+sdmpy -- P. Demorest, 2015/03
+
 Simple classes for reading VLA/ALMA Science Data Model (SDM) XML
 files.  The structure of the SDM is a set of tables, which contain
 rows of data.  Here is a short ipython session showing an example:

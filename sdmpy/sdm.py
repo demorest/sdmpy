@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+# sdm.py -- P. Demorest, 2015/03
+
 try:
     from lxml import etree
 except ImportError:
