@@ -2,7 +2,11 @@ sdmpy -- P. Demorest, 2015/03
 
 Simple classes for reading VLA/ALMA Science Data Model (SDM) XML
 files.  The structure of the SDM is a set of tables, which contain
-rows of data.  Here is a short ipython session showing an example:
+rows of data.  The main goal of this is to have a straightforward, 
+relatively dependency-free way of doing simple or low-level stuff with
+SDMs (e.g., for situations where invoking CASA is unnecessary).
+
+Here is a short ipython session showing a example usage:
 
 In [1]: import sdm
 
