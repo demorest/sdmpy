@@ -1,6 +1,9 @@
 #! /usr/bin/env python
 
-from lxml import etree
+try:
+    from lxml import etree
+except ImportError:
+    from xml.etree import ElementTree as etree
 
 class SDM(object):
     def __init__(self,path='.'):
@@ -39,6 +42,7 @@ class SDMTable(object):
         for row in table.iter('row'):
             newrow = SDMTableRow(row)
             self.rows.append(newrow)
+            # TODO : ids can map to more than one row..
             if hasattr(newrow,self.idtag):
                 self._ids[getattr(newrow,self.idtag)] = len(self.rows)-1
 
@@ -57,8 +61,12 @@ class SDMTable(object):
 
 class SDMTableRow(object):
     def __init__(self,element):
-        for c in element.iterchildren():
+        for c in element.getchildren():
             setattr(self,c.tag,c.text)
 
     def __str__(self):
         return str(self.__dict__)
+
+    @property
+    def keys(self):
+        return self.__dict__.keys()
