@@ -1,0 +1,63 @@
+Simple classes for reading VLA/ALMA Science Data Model (SDM) XML
+files.  The structure of the SDM is a set of tables, which contain
+rows of data.  Here is a short ipython session showing an example:
+
+In [1]: import sdm
+
+In [2]: s = sdm.SDM('15A-105_sb30463808_1.57082.53091797454')
+
+In [3]: s.tables
+Out[3]:
+['SpectralWindow',
+ 'CalData',
+ 'Antenna',
+ 'Subscan',
+ 'SwitchCycle',
+ 'Polarization',
+ 'Source',
+ 'State',
+ 'Station',
+ 'Main',
+ 'Flag',
+ 'ExecBlock',
+ 'SBSummary',
+ 'ConfigDescription',
+ 'Receiver',
+ 'Processor',
+ 'CorrelatorMode',
+ 'Feed',
+ 'PointingModel',
+ 'Field',
+ 'Scan',
+ 'CalDevice',
+ 'Weather',
+ 'CalReduction',
+ 'DataDescription']
+
+In [4]: s['Field'][0].keys
+Out[4]:
+['code',
+ 'referenceDir',
+ 'phaseDir',
+ 'sourceId',
+ 'delayDir',
+ 'fieldName',
+ 'time',
+ 'fieldId',
+ 'numPoly']
+
+In [5]: s['Field'][0].fieldName
+Out[5]: 'J1728+0427'
+
+In [6]: for row in s['Field']: print row.fieldName
+J1728+0427
+J1713+0747
+J1924-2914
+J1909-3744
+1411+522=3C295
+
+In [7]: len(s['Main'])
+Out[7]: 24
+
+
+
