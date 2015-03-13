@@ -39,7 +39,6 @@ class SDM(object):
     def __getitem__(self,key):
         return self._tables[key]
 
-
 def decap(s):
     return s[:1].lower() + s[1:] if s else ''
 
@@ -120,3 +119,5 @@ class SDMTableRow(object):
     def keys(self):
         return self.__dict__.keys()
 
+    def __getitem__(self,key):
+        return self.__dict__[key]
