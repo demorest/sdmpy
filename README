@@ -8,9 +8,9 @@ SDMs (e.g., for situations where invoking CASA is unnecessary).
 
 Here is a short ipython session showing a example usage:
 
-In [1]: import sdm
+In [1]: import sdmpy
 
-In [2]: s = sdm.SDM('15A-105_sb30463808_1.57082.53091797454')
+In [2]: s = sdmpy.SDM('15A-105_sb30463808_1.57082.53091797454')
 
 In [3]: s.tables
 Out[3]:
