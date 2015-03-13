@@ -64,8 +64,10 @@ class SDMTable(object):
         else:
             self.idtag = idtag
         table = etree.parse(path + '/' + name + '.xml').getroot()
+        entity = table.find('Entity')
+        self.entityId = entity.attrib['entityId']
         self.rows = []
-        self._ids = {} # Maybe ordereddict?
+        self._ids = {}
         for row in table.iter('row'):
             newrow = SDMTableRow(row)
             self.rows.append(newrow)
@@ -104,7 +106,12 @@ class SDMTableRow(object):
     """
     def __init__(self,element):
         for c in element.getchildren():
-            setattr(self,c.tag,c.text)
+            ent_ref = c.find('EntityRef')
+            if ent_ref is None:
+                setattr(self,c.tag,c.text)
+            else:
+                # Could read more of the entity reference stuff..
+                setattr(self,c.tag,ent_ref.attrib['entityId'])
 
     def __str__(self):
         return str(self.__dict__)
@@ -112,3 +119,4 @@ class SDMTableRow(object):
     @property
     def keys(self):
         return self.__dict__.keys()
+
