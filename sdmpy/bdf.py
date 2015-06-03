@@ -45,7 +45,7 @@ class BDF(object):
                     return v[v.index('=')+1:]
         return None
 
-    def read_mime_part(self,boundary=None):
+    def read_mime_part(self,boundary=None,recurse=False):
         """
         Read a MIME content part starting at the current file location.
         Return value is (hdr, body) tuple:
@@ -63,9 +63,10 @@ class BDF(object):
         body = None
         in_hdr = True
         binary_type = False
+        multipart_type = False
         # Note, need to use readline() rather than iterating over file
         # because we need to recover file positions and seek ahead.
-        # The "for line in file" approach reads ahead so is not compatible
+        # The "for line in file" type loop reads ahead so is not compatible
         # with this approach.
         while True:
 
@@ -75,10 +76,21 @@ class BDF(object):
             if line=='':
                 return (hdr, body)
 
-            # Hit boundary of multipart
+            # Check for multipart boundary marker
             if boundary is not None:
-                if line.startswith('--' + boundary):
-                    return (hdr, body)
+                if in_hdr:
+                    # If we are starting, ignore a 'start' marker,
+                    # quit on a 'done' marker
+                    if line=='--'+boundary+'\n':
+                        continue
+                    elif line=='--'+boundary+'--\n':
+                        return ({}, None)
+                else:
+                    # This marks the end of a part, rewind so that the 
+                    # next part can be parsed, and return results
+                    if line.startswith('--' + boundary):
+                        self.fp.seek(-len(line),1)
+                        return (hdr, body)
 
             if line=='\n':
                 # Got blank line, the next part will be body.  We
@@ -94,6 +106,20 @@ class BDF(object):
                     # Need to add one extra byte for the newline
                     self.fp.seek(self.bin_size[bin_name] 
                             * self.bin_dtype_size[bin_name] + 1, 1)
+                elif multipart_type:
+                    if recurse:
+                        # Parse the parts and add to a list
+                        while True:
+                            #print "recur b='%s'" % boundary 
+                            (phdr,pbody) = \
+                                    self.read_mime_part(boundary=boundary,
+                                            recurse=True)
+                            #print phdr
+                            #print pbody
+                            if phdr == {}:
+                                return (hdr,body)
+                            else:
+                                body.append((phdr,pbody))
                 continue
 
             if in_hdr:
@@ -102,7 +128,9 @@ class BDF(object):
                 hdr[key] = vals
                 if key=='Content-Type':
                     if vals[0].startswith('multipart/'):
+                        multipart_type = True
                         boundary = self.mime_boundary(hdr)
+                        body = []
                     elif vals[0] == 'application/octet-stream':
                         binary_type = True
             else:
@@ -148,4 +176,5 @@ class BDF(object):
         for e in self.sdmDataHeader.iter():
             if 'size' in e.attrib.keys() and 'axes' in e.attrib.keys():
                 self.bin_size[self.stripns(e.tag)] = int(e.attrib['size'])
+        self.fp.seek(0,0) # reset to start again
 
