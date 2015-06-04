@@ -3,7 +3,7 @@
 # bdf.py -- PBD 2015/06
 
 # This class provides access to EVLA/ALMA Binary Data Format (BDF)
-# files.  The approach used here is based somewhat on 'bdfparse.py' 
+# files.  The approach used here is based loosely on 'bdfparse.py' 
 # originally by Peter Williams.  So far this is somewhat targeted
 # to EVLA/WIDAR data files, it may not handle all the ALMA variants.
 
