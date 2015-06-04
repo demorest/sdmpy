@@ -16,10 +16,36 @@ import string
 import re
 import mmap
 import numpy
+from collections import namedtuple
 
-class MIMEPart(object):
-    def __init__(self,fp,boundary=None,sizes=None):
-        pass
+class MIMEPart(namedtuple('MIMEPart','hdr body')):
+    """Simple class for representing one part of a MIME message.
+    Has two member variable:
+
+      hdr  = Dict of MIME header key/value pairs
+      body = Body of message.  In our usage, can be a file offset in bytes
+             (for binary parts), a string (for text) or a list of MIMEPart
+             objects (for multipart).
+
+    The loc property is a shortcut for the Content-Location header
+    parameter.
+
+    The type property is a shortcut for Content-Type
+    """
+
+    @property
+    def loc(self):
+        try:
+            return self.hdr['Content-Location'][0]
+        except KeyError:
+            return None
+
+    @property
+    def type(self):
+        try:
+            return self.hdr['Content-Type'][0]
+        except KeyError:
+            return None
 
 class BDF(object):
 
@@ -74,7 +100,7 @@ class BDF(object):
 
             # hit EOF
             if line=='':
-                return (hdr, body)
+                return MIMEPart(hdr, body)
 
             # Check for multipart boundary marker
             if boundary is not None:
@@ -84,13 +110,13 @@ class BDF(object):
                     if line=='--'+boundary+'\n':
                         continue
                     elif line=='--'+boundary+'--\n':
-                        return ({}, None)
+                        return MIMEPart({}, None)
                 else:
                     # This marks the end of a part, rewind so that the 
                     # next part can be parsed, and return results
                     if line.startswith('--' + boundary):
                         self.fp.seek(-len(line),1)
-                        return (hdr, body)
+                        return MIMEPart(hdr, body)
 
             if line=='\n':
                 # Got blank line, the next part will be body.  We
@@ -111,15 +137,14 @@ class BDF(object):
                         # Parse the parts and add to a list
                         while True:
                             #print "recur b='%s'" % boundary 
-                            (phdr,pbody) = \
-                                    self.read_mime_part(boundary=boundary,
-                                            recurse=True)
+                            pmime = self.read_mime_part(boundary=boundary,
+                                        recurse=True)
                             #print phdr
                             #print pbody
-                            if phdr == {}:
-                                return (hdr,body)
+                            if pmime.hdr == {}:
+                                return MIMEPart(hdr,body)
                             else:
-                                body.append((phdr,pbody))
+                                body.append(pmime)
                 continue
 
             if in_hdr:
@@ -164,13 +189,12 @@ class BDF(object):
         if not self.fp.readline().startswith('MIME-Version:'):
             raise RuntimeError('Invalid BDF: missing MIME-Version')
         # Read top-level MIME; do we need to save any of this stuff?
-        mime_hdr = self.read_mime_part()[0]
+        mime_hdr = self.read_mime_part().hdr
         # Read main xml header
-        (mime_sub_hdr,sdm_hdr_xml) = self.read_mime_part(
-                boundary=self.mime_boundary(mime_hdr))
-        if mime_sub_hdr['Content-Location'][0] != 'sdmDataHeader.xml':
+        sdmDataMime = self.read_mime_part(boundary=self.mime_boundary(mime_hdr))
+        if sdmDataMime.loc != 'sdmDataHeader.xml':
             raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')
-        self.sdmDataHeader = etree.fromstring(sdm_hdr_xml)
+        self.sdmDataHeader = etree.fromstring(sdmDataMime.body)
         # Find the sizes of all binary parts
         self.bin_size = {}
         for e in self.sdmDataHeader.iter():
