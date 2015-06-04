@@ -1,16 +1,18 @@
 #! /usr/bin/env python
 
-# bdf.py -- PBD 2015/03/24
+# bdf.py -- PBD 2015/06
 
 # This class provides access to EVLA/ALMA Binary Data Format (BDF)
 # files.  The approach used here is based somewhat on 'bdfparse.py' 
-# originally by Peter Williams.
+# originally by Peter Williams.  So far this is somewhat targeted
+# to EVLA/WIDAR data files, it may not handle all the ALMA variants.
 
 try:
     from lxml import etree
 except ImportError:
     from xml.etree import ElementTree as etree
 
+import os
 import sys
 import string
 import re
@@ -47,6 +49,12 @@ class MIMEPart(namedtuple('MIMEPart','hdr body')):
         except KeyError:
             return None
 
+def basename_noext(path):
+    return os.path.basename(os.path.splitext(path)[0])
+
+# TODO find a better way to get the namespace automatically?
+_ns = '{http://Alma/XASDM/sdmbin}'
+
 class BDF(object):
 
     def __init__(self, fname):
@@ -54,7 +62,8 @@ class BDF(object):
         self.fp = open(fname, 'r')
         self.mmdata = mmap.mmap(self.fp.fileno(), 0, mmap.MAP_PRIVATE,
                 mmap.PROT_READ)
-        # TODO: more stuff
+        self.read_mime()
+        self.parse_spws()
 
     @staticmethod
     def split_mime(line):
@@ -126,12 +135,10 @@ class BDF(object):
                 if binary_type:
                     # Note the location within the file and skip
                     # ahead by the correct amount.
-                    bin_name = hdr['Content-Location'][0].split('/')[-1]
-                    bin_name = re.sub('\.bin$','',bin_name)
+                    bin_name = basename_noext(hdr['Content-Location'][0])
                     body = self.fp.tell()
                     # Need to add one extra byte for the newline
-                    self.fp.seek(self.bin_size[bin_name] 
-                            * self.bin_dtype_size[bin_name] + 1, 1)
+                    self.fp.seek(self.bin_size[bin_name]+1, 1)
                 elif multipart_type:
                     if recurse:
                         # Parse the parts and add to a list
@@ -184,21 +191,182 @@ class BDF(object):
             'crossData':       4, # FLOAT32 but should be determined from file
             }
 
-    def read_top(self):
+    # Basic data type for each array.  Note, does not necessarily
+    # match up with the sizes above due to how BDF defines the 'size'
+    # attribute..
+    bin_dtype = {
+            'autoData':        numpy.float32,
+            'crossData':       numpy.complex64,
+            }
+
+    def read_mime(self):
         self.fp.seek(0,0) # Go back to start
         if not self.fp.readline().startswith('MIME-Version:'):
             raise RuntimeError('Invalid BDF: missing MIME-Version')
-        # Read top-level MIME; do we need to save any of this stuff?
+
+        # First we need to read and parse only the main XML header in order
+        # to get sizes of the binary parts.  Note, the info stored in 
+        # self.bin_size is in bytes, rather than the weird BDF units.
         mime_hdr = self.read_mime_part().hdr
-        # Read main xml header
         sdmDataMime = self.read_mime_part(boundary=self.mime_boundary(mime_hdr))
         if sdmDataMime.loc != 'sdmDataHeader.xml':
             raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')
         self.sdmDataHeader = etree.fromstring(sdmDataMime.body)
-        # Find the sizes of all binary parts
         self.bin_size = {}
+        self.bin_axes = {}
         for e in self.sdmDataHeader.iter():
             if 'size' in e.attrib.keys() and 'axes' in e.attrib.keys():
-                self.bin_size[self.stripns(e.tag)] = int(e.attrib['size'])
+                binname = self.stripns(e.tag)
+                self.bin_size[binname] = int(e.attrib['size']) \
+                        * self.bin_dtype_size[binname]
+                self.bin_axes[binname] = e.attrib['axes'].split()
+
+        # Then we go back to the beginning and parse the whole MIME
+        # structure.
         self.fp.seek(0,0) # reset to start again
+        full_mime = self.read_mime_part(recurse=True)
+        self.mime_ints = full_mime.body[1:]
+
+    @property
+    def projectPath(self):
+        return self.sdmDataHeader.attrib['projectPath']
+
+    @property
+    def numAntenna(self):
+        return int(self.sdmDataHeader.find(_ns+'numAntenna').text)
+
+    @property
+    def numBaseline(self):
+        return (self.numAntenna*(self.numAntenna-1))/2
+
+    def parse_spws(self):
+        self.basebands = []
+        self.spws = {}
+        dataStruct = self.sdmDataHeader.find(_ns+'dataStruct')
+        # Offsets into the cross and data arrays where this spw
+        # can be found.  This info could be reconstructed later
+        # but seems convenient to do it here.
+        cross_offset = 0
+        auto_offset = 0
+        for bb in dataStruct.iterfind(_ns+'baseband'):
+            bbname = bb.attrib['name']
+            self.basebands.append(bbname)
+            self.spws[bbname] = []
+            for spw_elem in bb.iterfind(_ns+'spectralWindow'):
+                # Build a list of spectral windows for each baseband
+                spw = SpectralWindow(spw_elem,cross_offset,auto_offset)
+                cross_offset += spw.dsize('cross')
+                auto_offset += spw.dsize('auto')
+                self.spws[bbname].append(spw)
+
+    def get_integration(self,idx):
+        return BDFIntegration(self,idx)
+
+    def __getitem__(self,idx):
+        return self.get_integration(idx)
+
+class SpectralWindow(object):
+    """Spectral window class.  Initialize from the XML element."""
+
+    def __init__(self, spw_elem, cross_offset=None, auto_offset=None):
+        self._attrib = spw_elem.attrib
+        self.cross_offset = cross_offset
+        self.auto_offset = auto_offset
+
+    @property
+    def numBin(self):
+        return int(self._attrib['numBin'])
+
+    @property
+    def numSpectralPoint(self):
+        return int(self._attrib['numSpectralPoint'])
+
+    # These two are not listed in the BDF spec but appear in EVLA data:
+    @property
+    def sw(self):
+        return int(self._attrib['sw'])
+
+    @property
+    def swbb(self):
+        return self._attrib['swbb']
+
+    # Should uniquely identify a sw?
+    @property
+    def name(self):
+        return self.swbb + '-' + str(self.sw)
+
+    def npol(self,type):
+        """Return number of polarization array elements for the given data
+        type (cross or auto)."""
+        try:
+            if type[0].lower()=='c':
+                return len(self._attrib['crossPolProducts'].split())
+            elif type[0].lower()=='a':
+                # Good enough?
+                l = len(self._attrib['sdPolProducts'].split())
+                return 4 if l==3 else l # 3==4 in BDF math! :)
+        except KeyError:
+            return 0
+
+    def dshape(self,type):
+        """Return shape tuple of data array for this spectral window, 
+        in number of data elements (real for auto, complex for cross)."""
+        return (self.numBin, self.numSpectralPoint, self.npol(type))
+
+    def dsize(self,type):
+        """Return size of data array for this spectral window, in number of
+        data elements (real for auto, complex for cross)."""
+        return numpy.product(self.dshape(type))
+
+class BDFIntegration(object):
+    """Describes and holds data for a single intgration within a BDF file."""
+
+    def __init__(self,bdf,idx):
+        # Get the main header
+        self.sdmDataSubsetHeader = etree.fromstring(
+                bdf.mime_ints[idx].body[0].body)
+        # Copy some info from the BDF headers
+        self.basebands = bdf.basebands
+        self.spws = bdf.spws
+        self.bin_axes = bdf.bin_axes
+        self.numAntenna = bdf.numAntenna
+        self.numBaseline = bdf.numBaseline
+        # Get the binary data
+        self.data = {}
+        for m in bdf.mime_ints[idx].body[1:]:
+            btype = basename_noext(m.loc)
+            bsize = bdf.bin_size[btype] # size of the binary blob in bytes
+            baxes = self.bin_axes[btype]
+            # Determine outer step size for the array, either baselines
+            # antennas of baseline+antenna.  We can't apply the other
+            # dimensions here because the number of elements can vary
+            # per spw.
+            if baxes[0]=='BAL' and baxes[1]=='ANT':
+                shape=(self.numBaseline+self.numAntenna,-1)
+            elif baxes[0]=='BAL':
+                shape=(self.numBaseline,-1)
+            elif baxes[0]=='ANT':
+                shape=(self.numAntenna,-1)
+            else:
+                shape=(-1,) # Don't know what to do, just leave flat array
+            self.data[m.loc] = numpy.fromstring(bdf.mmdata[m.body:m.body+bsize],
+                    dtype=bdf.bin_dtype[btype]).reshape(shape)
+
+    @property
+    def projectPath(self):
+        return self.sdmDataSubsetHeader.attrib['projectPath']
+
+    def get_data(self,baseband,spwidx,type='cross'):
+        spw = self.spws[baseband][spwidx]
+        if type[0].lower()=='c': 
+            loc = self.projectPath + 'crossData.bin'
+            offs = spw.cross_offset
+        elif type[0].lower()=='a': 
+            loc = self.projectPath + 'autoData.bin'
+            offs = spw.auto_offset
+        else:
+            raise RuntimeError('Unsupported data type')
+        dsize = spw.dsize(type)
+        dshape = (-1,) + spw.dshape(type)
+        return self.data[loc][:,offs:offs+dsize].reshape(dshape)
 
