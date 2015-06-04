@@ -232,6 +232,10 @@ class BDF(object):
         return self.sdmDataHeader.attrib['projectPath']
 
     @property
+    def numIntegration(self):
+        return len(self.mime_ints)
+
+    @property
     def numAntenna(self):
         return int(self.sdmDataHeader.find(_ns+'numAntenna').text)
 
