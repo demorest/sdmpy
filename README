@@ -73,7 +73,7 @@ usage (see docstrings for more info):
 
 In [1]: import sdmpy
 
-In [2]: b = sdmpy.bdf.BDF('uid____evla_bdf_1433189755525')
+In [2]: b = sdmpy.BDF('uid____evla_bdf_1433189755525')
 
 In [3]: b.numAntenna
 Out[3]: 25
