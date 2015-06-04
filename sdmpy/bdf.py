@@ -21,7 +21,8 @@ import numpy
 from collections import namedtuple
 
 class MIMEPart(namedtuple('MIMEPart','hdr body')):
-    """Simple class for representing one part of a MIME message.
+    """
+    Simple class for representing one part of a MIME message.
     Has two member variable:
 
       hdr  = Dict of MIME header key/value pairs
@@ -54,8 +55,27 @@ def basename_noext(path):
 
 # TODO find a better way to get the namespace automatically?
 _ns = '{http://Alma/XASDM/sdmbin}'
+def _stripns(tag):
+    return re.sub('{.+}','',tag)
+
 
 class BDF(object):
+    """
+    Class representing a single BDF file.  For example:
+
+        b = bdf.BDF('uid____evla_bdf_1433189755525')
+
+    Individual integration data is returned as BDFIntegration objects via
+    either b.get_integration(idx) or b[idx].  Other useful methods include:
+
+        b.basebands      # list of baseband ids
+        b.spws           # dict of spectral windows per baseband
+        b.numAntenna     # number of antennas
+        b.numBaseline    # number of baselines
+        b.numIntegration # number of integrations in file
+        b.sdmDataHeader  # XML etree version of full header
+
+    """
 
     def __init__(self, fname):
         self.fname = fname
@@ -83,16 +103,18 @@ class BDF(object):
     def read_mime_part(self,boundary=None,recurse=False):
         """
         Read a MIME content part starting at the current file location.
-        Return value is (hdr, body) tuple:
+        Return value is a MIMEPart object, which has elements:
 
             hdr    dict of MIME header key / value pairs
 
             body   string if Content-Type was 'text/xml', offset into
-                   the file if 'application/octet-stream', or None
-                   for a 'multipart/*'.
+                   the file if 'application/octet-stream', or list of
+                   other MIMEParts for a 'multipart/*'.
 
-        File pointer will be left at the start of the next part.
-        TODO Do we really want to do this recursive for multiparts?
+        If recurse is True, will read/return the contents of a multipart
+        (and any multiparts found at lower levels).  Otherwise will read
+        one header/body unit and pointer will be left at the start of 
+        the next one (or first sub-part for multiparts).
         """
         hdr = {}
         body = None
@@ -175,10 +197,6 @@ class BDF(object):
                     # failed or file is otherwise messed up... what to do?
                     raise RuntimeError('BDF MIME parsing failure')
 
-    @staticmethod
-    def stripns(tag):
-        return re.sub('{.+}','',tag)
-
     # Size in bytes of each data element. In principle, the crossData 
     # type needs to be read from the headers while all others have 
     # pre-set values...
@@ -216,7 +234,7 @@ class BDF(object):
         self.bin_axes = {}
         for e in self.sdmDataHeader.iter():
             if 'size' in e.attrib.keys() and 'axes' in e.attrib.keys():
-                binname = self.stripns(e.tag)
+                binname = _stripns(e.tag)
                 self.bin_size[binname] = int(e.attrib['size']) \
                         * self.bin_dtype_size[binname]
                 self.bin_axes[binname] = e.attrib['axes'].split()
@@ -323,7 +341,30 @@ class SpectralWindow(object):
         return numpy.product(self.dshape(type))
 
 class BDFIntegration(object):
-    """Describes and holds data for a single intgration within a BDF file."""
+    """
+    Describes and holds data for a single intgration within a BDF file.
+    This should be derived from an existing BDF object using 
+    get_integration() or indexing, ie:
+
+        b = bdf.BDF('some_file')
+
+        # Get the 5th integration, these two are equivalent:
+        i = b.get_integration(5)
+        i = b[5]
+
+        # Read the cross-corr data array for spectral window 0 in 
+        # the AC baseband:
+        dat = i.get_data('AC_8BIT',0)
+
+    Other potentially useful info:
+
+        i.basebands            # list of baseband IDs
+        i.spws                 # dict of spws per baseband
+        i.numAntenna           # obvious
+        i.numBaseline          # "
+        i.sdmDataSubsetHeader  # XML etree version of full sub-header
+
+    """
 
     def __init__(self,bdf,idx):
         # Get the main header
@@ -361,6 +402,15 @@ class BDFIntegration(object):
         return self.sdmDataSubsetHeader.attrib['projectPath']
 
     def get_data(self,baseband,spwidx,type='cross'):
+        """
+        Return the data array for the given subset.  Inputs are:
+
+            baseband:  baseband ID string
+            spwidx:    spw index within baseband
+            type:      'cross' or 'auto' (default 'cross')
+
+        The returned array shape is (nBl/nAnt, nBin, nSpp, nPol).
+        """
         spw = self.spws[baseband][spwidx]
         if type[0].lower()=='c': 
             loc = self.projectPath + 'crossData.bin'
