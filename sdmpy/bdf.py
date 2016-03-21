@@ -394,7 +394,7 @@ class BDFIntegration(object):
                 shape=(self.numAntenna,-1)
             else:
                 shape=(-1,) # Don't know what to do, just leave flat array
-            self.data[m.loc] = numpy.fromstring(bdf.mmdata[m.body:m.body+bsize],
+            self.data[m.loc] = numpy.frombuffer(bdf.mmdata[m.body:m.body+bsize],
                     dtype=bdf.bin_dtype[btype]).reshape(shape)
 
     @property
