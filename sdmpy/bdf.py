@@ -287,6 +287,17 @@ class BDF(object):
     def __getitem__(self,idx):
         return self.get_integration(idx)
 
+    def get_data(self,baseband,spw,type='cross'):
+        """Returns an array containing all integrations for the specified
+        baseband, spw and data type."""
+        # Read first integration to get shapes, etc
+        subdat = self.get_integration(0).get_data(baseband,spw,type)
+        dshape = (self.numIntegration,) + subdat.shape
+        result = numpy.zeros(dshape,dtype=subdat.dtype)
+        for i in range(self.numIntegration):
+            result[i] = self.get_integration(i).get_data(baseband,spw,type)
+        return result
+
 class SpectralWindow(object):
     """Spectral window class.  Initialize from the XML element."""
 
