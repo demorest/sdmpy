@@ -6,7 +6,7 @@ import string
 import numpy
 import os.path
 
-from .bdf import BDF
+from .bdf import BDF, ant2bl, bl2ant
 
 def uid2fname(s):
     """Convert uid URL to file name (mainly for BDFs)."""

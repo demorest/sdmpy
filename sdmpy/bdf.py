@@ -17,6 +17,7 @@ import sys
 import string
 import re
 import mmap
+import math
 import numpy
 from collections import namedtuple
 
@@ -58,6 +59,21 @@ _ns = '{http://Alma/XASDM/sdmbin}'
 def _stripns(tag):
     return re.sub('{.+}','',tag)
 
+def ant2bl(i,j=None):
+    """Returns baseline index for given antenna pair.  Will accept
+    two args, or a list/tuple/etc.  Uses 0-based indexing"""
+    if j is None:
+        (a1,a2) = sorted(i[:2])
+    else:
+        (a1,a2) = sorted((i,j))
+    # could raise error if a2==a1, either are negative, etc
+    return (a2*(a2-1))/2 + a1
+
+def bl2ant(i):
+    """Returns antenna pair for given baseline index.  All are 0-based."""
+    a2 = int(0.5*(1.0+math.sqrt(1.0+8.0*i)))
+    a1 = i - a2*(a2-1)/2
+    return a1, a2
 
 class BDF(object):
     """
@@ -287,15 +303,24 @@ class BDF(object):
     def __getitem__(self,idx):
         return self.get_integration(idx)
 
-    def get_data(self,baseband,spw,type='cross'):
+    def get_data(self,baseband,spw,type='cross',scrunch=False):
         """Returns an array containing all integrations for the specified
-        baseband, spw and data type."""
+        baseband, spw and data type.  If scrunch=True, all integrations
+        will be averaged."""
         # Read first integration to get shapes, etc
         subdat = self.get_integration(0).get_data(baseband,spw,type)
-        dshape = (self.numIntegration,) + subdat.shape
+        if scrunch:
+            dshape = subdat.shape
+        else:
+            dshape = (self.numIntegration,) + subdat.shape
         result = numpy.zeros(dshape,dtype=subdat.dtype)
         for i in range(self.numIntegration):
-            result[i] = self.get_integration(i).get_data(baseband,spw,type)
+            if scrunch:
+                result += self.get_integration(i).get_data(baseband,spw,type)
+            else:
+                result[i] = self.get_integration(i).get_data(baseband,spw,type)
+        if scrunch: 
+            result /= float(self.numIntegration)
         return result
 
 class SpectralWindow(object):
