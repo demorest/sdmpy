@@ -2,10 +2,14 @@
 
 # sdm.py -- P. Demorest, 2015/03
 
+import os.path
+
 try:
     from lxml import etree
 except ImportError:
     from xml.etree import ElementTree as etree
+
+from .scan import Scan
 
 class SDM(object):
     """
@@ -16,11 +20,13 @@ class SDM(object):
 
     Attributes:
       tables = list of tables with non-zero number of rows
+      path   = full path to SDM directory
 
     SDM['TableName'] returns the relevant SDMTable object.
     """
     def __init__(self,path='.'):
         self._tables = {}
+        self.path = os.path.abspath(path)
         asdm = etree.parse(path+'/ASDM.xml').getroot()
         for tab in asdm.iter('Table'):
             name = tab.find('Name').text
@@ -39,6 +45,10 @@ class SDM(object):
     def __getitem__(self,key):
         return self._tables[key]
 
+    def scan(self,idx):
+        """Return a Scan object for the given scan number."""
+        return Scan(self,str(idx))
+
 def decap(s):
     return s[:1].lower() + s[1:] if s else ''
 
@@ -56,10 +66,24 @@ class SDMTable(object):
 
     SDMTable[i] returns the i-th row as a SDMTableRow object
     """
+
+    # Any non-standard Id tag names can be listed here.
+    # Note that for some tables a unique key is not a single tag
+    # but is defined as a combination of several tags.  We are
+    # just going to ignore this for now and do something that is
+    # convenient and seems to work for most EVLA data sets.
+    _idtags = {
+            'Main': 'scanNumber',
+            'Scan': 'scanNumber',
+            }
+
     def __init__(self,name,path='.',idtag=None):
         self.name = name
         if idtag is None:
-            self.idtag = decap(name) + 'Id'
+            try:
+                self.idtag = self._idtags[name]
+            except KeyError:
+                self.idtag = decap(name) + 'Id'
         else:
             self.idtag = idtag
         table = etree.parse(path + '/' + name + '.xml').getroot()
@@ -70,7 +94,6 @@ class SDMTable(object):
         for row in table.iter('row'):
             newrow = SDMTableRow(row)
             self.rows.append(newrow)
-            # TODO : ids can map to more than one row..
             if hasattr(newrow,self.idtag):
                 self._ids[getattr(newrow,self.idtag)] = len(self.rows)-1
 
