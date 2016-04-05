@@ -52,6 +52,11 @@ class Scan(object):
         return self.sdm['Scan'][self.idx]
 
     @property
+    def _config(self):
+        """Convenience interfact to the SDM ConfigDescription row."""
+        return self.sdm['ConfigDescription'][self._main.configDescriptionId]
+
+    @property
     def intents(self):
         """Return the list of intents for this scan."""
         return list(sdmarray(self._scan.scanIntent))
@@ -59,7 +64,23 @@ class Scan(object):
     @property
     def antennas(self):
         """Return the list of antenna names for this scan."""
-        cd = self.sdm['ConfigDescription'][self._main.configDescriptionId]
-        sdm_ants = sdmarray(cd.antennaId)
+        sdm_ants = sdmarray(self._config.antennaId)
         return [self.sdm['Antenna'][a].name for a in sdm_ants]
+
+    @property
+    def baselines(self):
+        """Return the list of antenna pairs for this scan, in BDF ordering."""
+        ants = self.antennas
+        nant = len(ants)
+        nbl = nant*(nant-1)/2
+        #return ['%s-%s' % (ants[x[0]], ants[x[1]]) 
+        #        for x in map(bl2ant, range(nbl))]
+        return [(ants[x[0]], ants[x[1]]) for x in map(bl2ant, range(nbl))]
+
+    def spw(self,idx):
+        """Return the SpectralWindow entry for the given index in this scan."""
+        dd_id = sdmarray(self._config.dataDescriptionId)[idx]
+        spw_id = self.sdm['DataDescription'][dd_id].spectralWindowId
+        return self.sdm['SpectralWindow'][spw_id]
+
 
