@@ -303,22 +303,33 @@ class BDF(object):
     def __getitem__(self,idx):
         return self.get_integration(idx)
 
-    def get_data(self,baseband,spw,type='cross',scrunch=False):
+    def get_data(self,baseband,spw,type='cross',scrunch=False,
+            fscrunch=False,frange=None):
         """Returns an array containing all integrations for the specified
         baseband, spw and data type.  If scrunch=True, all integrations
         will be averaged."""
+        chidx = -2 # index of spectral channels
         # Read first integration to get shapes, etc
         subdat = self.get_integration(0).get_data(baseband,spw,type)
         if scrunch:
             dshape = subdat.shape
         else:
             dshape = (self.numIntegration,) + subdat.shape
+        if fscrunch:
+            dshape = dshape[:chidx] + dshape[chidx+1:]
         result = numpy.zeros(dshape,dtype=subdat.dtype)
         for i in range(self.numIntegration):
-            if scrunch:
-                result += self.get_integration(i).get_data(baseband,spw,type)
+            if fscrunch:
+                if frange is None:
+                    dat = self.get_integration(i).get_data(baseband,spw,type).mean(chidx)
+                else:
+                    dat = self.get_integration(i).get_data(baseband,spw,type).take(range(*frange),axis=chidx).mean(chidx)
             else:
-                result[i] = self.get_integration(i).get_data(baseband,spw,type)
+                dat = self.get_integration(i).get_data(baseband,spw,type)
+            if scrunch:
+                result += dat
+            else:
+                result[i] = dat
         if scrunch: 
             result /= float(self.numIntegration)
         return result
@@ -459,4 +470,33 @@ class BDFIntegration(object):
         dsize = spw.dsize(type)
         dshape = (-1,) + spw.dshape(type)
         return self.data[loc][:,offs:offs+dsize].reshape(dshape)
+
+
+import numpy
+from numpy import linalg
+def gaincal(data,axis=0,ref=0):
+    """Derives amplitude/phase calibration factors from the data array
+    for the given baseline axis.  In the returned array, the baseline
+    dimension is converted to antenna.  No other axes are modified.
+    Note this internally makes a transposed copy of the data so be 
+    careful with memory usage in the case of large data sets."""
+    nbl = data.shape[axis]
+    ndim = len(data.shape)
+    (check,nant) = bl2ant(nbl)
+    if check!=0:
+        raise RuntimeError("Specified axis dimension (%d) is not a valid number of baselines" % nbl)
+    tdata = numpy.zeros(data.shape[:axis]+data.shape[axis+1:]+(nant,nant),
+            dtype=data.dtype)
+    for i in range(nbl):
+        (a0,a1) = bl2ant(i)
+        tdata[...,a0,a1] = data.take(i,axis=axis)
+        tdata[...,a1,a0] = numpy.conj(data.take(i,axis=axis))
+    (w,v) = linalg.eigh(tdata)
+    result = numpy.sqrt(w[...,-1]).T*v[...,-1].T
+    # First axis is now antenna.. refer all phases to reference ant
+    result = (result*numpy.conj(result[ref])/numpy.abs(result[ref])).T
+    # TODO try to reduce number of transposes
+    outdims = range(axis) + [-1,] + range(axis,ndim-1)
+    return result.transpose(outdims)
+
 
