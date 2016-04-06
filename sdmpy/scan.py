@@ -68,6 +68,13 @@ class Scan(object):
         return [self.sdm['Antenna'][a].name for a in sdm_ants]
 
     @property
+    def stations(self):
+        """Return the list of station names for this scan."""
+        sdm_ants = sdmarray(self._config.antennaId)
+        sdm_stns = [self.sdm['Antenna'][a].stationId for a in sdm_ants]
+        return [self.sdm['Station'][s].name for s in sdm_stns]
+
+    @property
     def baselines(self):
         """Return the list of antenna pairs for this scan, in BDF ordering."""
         ants = self.antennas
