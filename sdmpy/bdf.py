@@ -233,7 +233,7 @@ class BDF(object):
             'crossData':       numpy.complex64,
             }
 
-    def read_mime(self):
+    def read_mime(self,full_read=False):
         self.fp.seek(0,0) # Go back to start
         if not self.fp.readline().startswith('MIME-Version:'):
             raise RuntimeError('Invalid BDF: missing MIME-Version')
@@ -242,7 +242,8 @@ class BDF(object):
         # to get sizes of the binary parts.  Note, the info stored in 
         # self.bin_size is in bytes, rather than the weird BDF units.
         mime_hdr = self.read_mime_part().hdr
-        sdmDataMime = self.read_mime_part(boundary=self.mime_boundary(mime_hdr))
+        self.top_mime_bound = self.mime_boundary(mime_hdr)
+        sdmDataMime = self.read_mime_part(boundary=self.top_mime_bound)
         if sdmDataMime.loc != 'sdmDataHeader.xml':
             raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')
         self.sdmDataHeader = etree.fromstring(sdmDataMime.body)
@@ -255,11 +256,33 @@ class BDF(object):
                         * self.bin_dtype_size[binname]
                 self.bin_axes[binname] = e.attrib['axes'].split()
 
-        # Then we go back to the beginning and parse the whole MIME
-        # structure.
-        self.fp.seek(0,0) # reset to start again
-        full_mime = self.read_mime_part(recurse=True)
-        self.mime_ints = full_mime.body[1:]
+        # For EVLA, we can read the first integration, note the file offset
+        # in order to determine the size, then seek to each integration as
+        # requested, rather than parsing the whole file here.
+        if 'EVLA' in mime_hdr['Content-Description'][0] and not full_read:
+            self.offset_ints = self.fp.tell() # Offset in file to first integ
+            self.mime_ints = [self.read_mime_part(boundary=self.top_mime_bound,
+                recurse=True),]
+            # Compute size of each integration section:
+            self.size_ints = self.fp.tell() - self.offset_ints
+            numints = int((os.path.getsize(self.fname)-self.offset_ints)/self.size_ints)
+            self.mime_ints += [None,]*(numints-1)
+
+        # This is the more general way to do it that does not assume
+        # each integration (including XML and MIME headers) has the 
+        # same size in the file.  In this case, go back to the beginning 
+        # and parse the whole MIME structure to map it out.
+        else:
+            self.fp.seek(0,0) # reset to start again
+            full_mime = self.read_mime_part(recurse=True)
+            self.mime_ints = full_mime.body[1:]
+
+    def _raw(self,idx):
+        if self.mime_ints[idx] is not None: return self.mime_ints[idx]
+        # Need to read this one
+        self.fp.seek(self.offset_ints + idx*self.size_ints, 0)
+        self.mime_ints[idx] = self.read_mime_part(boundary=self.top_mime_bound,recurse=True)
+        return self.mime_ints[idx]
 
     @property
     def projectPath(self):
@@ -276,6 +299,10 @@ class BDF(object):
     @property
     def numBaseline(self):
         return (self.numAntenna*(self.numAntenna-1))/2
+
+    @property
+    def startTime(self):
+        return float(self.sdmDataHeader.find(_ns+'startTime').text)/86400.0e9
 
     def parse_spws(self):
         self.basebands = []
@@ -415,8 +442,7 @@ class BDFIntegration(object):
 
     def __init__(self,bdf,idx):
         # Get the main header
-        self.sdmDataSubsetHeader = etree.fromstring(
-                bdf.mime_ints[idx].body[0].body)
+        self.sdmDataSubsetHeader = etree.fromstring(bdf._raw(idx).body[0].body)
         # Copy some info from the BDF headers
         self.basebands = bdf.basebands
         self.spws = bdf.spws
@@ -425,7 +451,7 @@ class BDFIntegration(object):
         self.numBaseline = bdf.numBaseline
         # Get the binary data
         self.data = {}
-        for m in bdf.mime_ints[idx].body[1:]:
+        for m in bdf._raw(idx).body[1:]:
             btype = basename_noext(m.loc)
             bsize = bdf.bin_size[btype] # size of the binary blob in bytes
             baxes = self.bin_axes[btype]
@@ -447,6 +473,16 @@ class BDFIntegration(object):
     @property
     def projectPath(self):
         return self.sdmDataSubsetHeader.attrib['projectPath']
+
+    @property
+    def time(self):
+        st = self.sdmDataSubsetHeader.find(_ns+'schedulePeriodTime')
+        return float(st.find(_ns+'time').text)/86400.0e9
+
+    @property
+    def interval(self):
+        st = self.sdmDataSubsetHeader.find(_ns+'schedulePeriodTime')
+        return float(st.find(_ns+'interval').text)*1e-9
 
     def get_data(self,baseband,spwidx,type='cross'):
         """
