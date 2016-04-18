@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File AxisName.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="AxisName">
+	
+		<xsd:annotation>
+			<xsd:documentation> Axis names.</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="TIM" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Time axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BAL" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseline axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ANT" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Antenna axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BAB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="SPW" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Spectral window  axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="SIB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Sideband axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="SUB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Subband axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BIN" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Bin axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="APC" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Atmosphere phase correction axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="SPP" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Spectral point axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="POL" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Polarization axis (Stokes parameters). </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="STO" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Stokes parameter axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="HOL" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Holography axis. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="AxisNameList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="AxisName" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="AxisNames">
+		<xsd:restriction base="AxisNameList">
+			<xsd:maxLength value = "13" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

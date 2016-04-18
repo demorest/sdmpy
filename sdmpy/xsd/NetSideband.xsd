@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File NetSideband.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="NetSideband">
+	
+		<xsd:annotation>
+			<xsd:documentation> [ASDM.SpectralWindow] Equivalent side band of spectrum frequency axis</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="NOSB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>No side band (no frequency conversion) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="LSB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Lower side band </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="USB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Upper side band </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="DSB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Double side band </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="NetSidebandList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="NetSideband" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="NetSidebands">
+		<xsd:restriction base="NetSidebandList">
+			<xsd:maxLength value = "4" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

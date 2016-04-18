@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File CalibrationDevice.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="CalibrationDevice">
+	
+		<xsd:annotation>
+			<xsd:documentation>Devices that may be inserted in the optical path in front of the receiver.</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="AMBIENT_LOAD" >
+		
+				<xsd:annotation>
+					<xsd:documentation>An absorbing load at the ambient temperature. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="COLD_LOAD" >
+		
+				<xsd:annotation>
+					<xsd:documentation>A cooled absorbing load. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="HOT_LOAD" >
+		
+				<xsd:annotation>
+					<xsd:documentation>A heated absorbing load. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="NOISE_TUBE_LOAD" >
+		
+				<xsd:annotation>
+					<xsd:documentation>A noise tube. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="QUARTER_WAVE_PLATE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>A transparent plate that introduces a 90-degree phase difference between othogonal polarizations. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="SOLAR_FILTER" >
+		
+				<xsd:annotation>
+					<xsd:documentation>An optical attenuator (to protect receiver from solar heat). </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="NONE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>No device, the receiver looks at the sky (through the telescope). </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="CalibrationDeviceList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="CalibrationDevice" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="CalibrationDevices">
+		<xsd:restriction base="CalibrationDeviceList">
+			<xsd:maxLength value = "7" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

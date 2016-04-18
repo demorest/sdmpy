@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File SwitchingMode.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="SwitchingMode">
+	
+		<xsd:annotation>
+			<xsd:documentation> Switching modes: there are two categories of switching modes, those at high rate (chopper wheel, nutator and frequency switch) which involve the BIN axis and those at low  rate (frequency, position, load and phase switching) unrelated to the bin axis. Note that in case of  frequency switching mode it is the context which tells in which of these two categories it is used.</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="NO_SWITCHING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>No switching </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="LOAD_SWITCHING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Receiver beam is switched between sky and load </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="POSITION_SWITCHING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Antenna (main reflector) pointing direction  is switched  </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="PHASE_SWITCHING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>90 degrees phase switching  (switching mode used for sideband separation or rejection with DSB receivers) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="FREQUENCY_SWITCHING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>LO frequency is switched (definition context sensitive: fast if cycle shrorter than the integration duration, slow if e.g. step one step per subscan) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="NUTATOR_SWITCHING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Switching between different directions by nutating the sub-reflector </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CHOPPER_WHEEL" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Switching using a chopper wheel </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="SwitchingModeList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="SwitchingMode" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="SwitchingModes">
+		<xsd:restriction base="SwitchingModeList">
+			<xsd:maxLength value = "7" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

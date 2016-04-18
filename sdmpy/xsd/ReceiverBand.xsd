@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File ReceiverBand.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="ReceiverBand">
+	
+		<xsd:annotation>
+			<xsd:documentation> [ASDM.Receiver] Receiver band names</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="ALMA_RB_01" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 01 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_02" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 02 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_03" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 03 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_04" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 04 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_05" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 05 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_06" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 06 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_07" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 07 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_08" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 08 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_09" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 09 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_10" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ALMA Receiver band 10 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_RB_ALL" >
+		
+				<xsd:annotation>
+					<xsd:documentation>all ALMA receiver bands. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_HOLOGRAPHY_RECEIVER" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Alma transmitter Holography receiver. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BURE_01" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Plateau de Bure receiver band #1. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BURE_02" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Plateau de Bure receiver band #2. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BURE_03" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Plateau de Bure receiver band #3. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BURE_04" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Plateau de Bure receiver band #4 </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_4" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_P" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_L" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_C" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_S" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_X" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_Ku" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_K" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_Ka" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="EVLA_Q" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="UNSPECIFIED" >
+		
+				<xsd:annotation>
+					<xsd:documentation>receiver band of unspecified origin. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="ReceiverBandList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="ReceiverBand" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="ReceiverBands">
+		<xsd:restriction base="ReceiverBandList">
+			<xsd:maxLength value = "27" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

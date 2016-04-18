@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File CalDataOrigin.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="CalDataOrigin">
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="TOTAL_POWER" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Total Power data (from detectors) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="WVR" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Water vapour radiometrers </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CHANNEL_AVERAGE_AUTO" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Autocorrelations from channel average data </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CHANNEL_AVERAGE_CROSS" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Crosscorrelations from channel average data </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="FULL_RESOLUTION_AUTO" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Autocorrelations from full-resolution data </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="FULL_RESOLUTION_CROSS" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Cross correlations from full-resolution data </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="OPTICAL_POINTING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Optical pointing data </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="HOLOGRAPHY" >
+		
+				<xsd:annotation>
+					<xsd:documentation>data from holography receivers </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="NONE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Not applicable </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="CalDataOriginList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="CalDataOrigin" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="CalDataOrigins">
+		<xsd:restriction base="CalDataOriginList">
+			<xsd:maxLength value = "9" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

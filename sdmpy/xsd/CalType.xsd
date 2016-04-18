@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File CalType.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="CalType">
+	
+		<xsd:annotation>
+			<xsd:documentation> [CalDM.CalData] Used to point to a given CalResult table</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="CAL_AMPLI" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_ATMOSPHERE" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_BANDPASS" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_CURVE" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_DELAY" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_FLUX" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_FOCUS" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_FOCUS_MODEL" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_GAIN" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_HOLOGRAPHY" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_PHASE" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_POINTING" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_POINTING_MODEL" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_POSITION" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_PRIMARY_BEAM" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_SEEING" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_WVR" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CAL_APPPHASE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Calibration for phasing of ALMA. Applicable at ALMA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="CalTypeList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="CalType" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="CalTypes">
+		<xsd:restriction base="CalTypeList">
+			<xsd:maxLength value = "18" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

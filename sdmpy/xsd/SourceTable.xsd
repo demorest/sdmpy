@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+ ALMA - Atacama Large Millimeter Array
+ (c) European Southern Observatory, 2002
+ (c) Associated Universities Inc., 2002
+ Copyright by ESO (in the framework of the ALMA collaboration),
+ Copyright by AUI (in the framework of the ALMA collaboration),
+ All rights reserved.
+ 
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ 
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY, without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ 
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ MA 02111-1307  USA
+ 
+////////////////////////////////////////////////////////////////////////////////////////
+//
+//                                    WARNING 
+//  This is generated code!  Do not modify this file.                  
+//  If you do, all changes will be lost when the file is re-generated. 
+//
+////////////////////////////////////////////////////////////////////////////////////////
+ File SourceTable.xsd
+ -->
+<xs:schema   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                       version="3 -1">
+	
+    <xs:element name="SourceTable">
+        <xs:complexType>
+            <xs:sequence>
+             	<!-- This table's Entity . -->
+            	<xs:element name="Entity" type="EntityT"/>
+
+            	<!-- This table's Container's Entity. -->
+            	<xs:element name="ContainerEntity" type="EntityT"/>
+            	
+            	<!-- And then the sequence of its rows -->
+                <xs:element name="row" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                        <xs:sequence>
+         <xs:element name="sourceId" type=
+"xs:string"
+
+/>
+         <xs:element name="timeInterval" type=
+"xs:string"
+
+/>
+         <xs:element name="code" type=
+"xs:string"
+
+/>
+         <xs:element name="direction" type=
+"xs:string"
+
+/>
+         <xs:element name="properMotion" type=
+"xs:string"
+
+/>
+         <xs:element name="sourceName" type=
+"xs:string"
+
+/>
+     	 <xs:element name="directionCode" type=
+"DirectionReferenceCode"
+
+  minOccurs="0"/>
+     	 <xs:element name="directionEquinox" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="calibrationGroup" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="catalog" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="deltaVel" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="position" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="numLines" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="transition" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="restFrequency" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="sysVel" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="rangeVel" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="sourceModel" type=
+"SourceModel"
+
+  minOccurs="0"/>
+     	 <xs:element name="frequencyRefCode" type=
+"FrequencyReferenceCode"
+
+  minOccurs="0"/>
+     	 <xs:element name="numFreq" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="numStokes" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="frequency" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="frequencyInterval" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="stokesParameter" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="flux" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="fluxErr" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="positionAngle" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="positionAngleErr" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="size" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="sizeErr" type=
+"xs:string"
+
+  minOccurs="0"/>
+     	 <xs:element name="velRefCode" type=
+"RadialVelocityReferenceCode"
+
+  minOccurs="0"/>
+         <xs:element name="spectralWindowId" type=
+"xs:string"
+
+/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

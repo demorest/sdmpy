@@ -9,4 +9,5 @@ setup(name='sdmpy',
       author_email='pdemores@nrao.edu',
       url='http://github.com/demorest/sdmpy',
       packages=['sdmpy'],
+      package_data={'sdmpy':['xsd/*.xsd',]}
      )

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File AntennaMake.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="AntennaMake">
+	
+		<xsd:annotation>
+			<xsd:documentation>The physical types of antenna</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="AEM_12" >
+		
+				<xsd:annotation>
+					<xsd:documentation>12m AEM antenna </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="MITSUBISHI_7" >
+		
+				<xsd:annotation>
+					<xsd:documentation>7-m Mitsubishi antenna (ACA) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="MITSUBISHI_12_A" >
+		
+				<xsd:annotation>
+					<xsd:documentation>12-m Mitsubishi antenna (ACA) (refurbished prototype) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="MITSUBISHI_12_B" >
+		
+				<xsd:annotation>
+					<xsd:documentation>12-m Mitsubishi antenna (ACA) (production) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="VERTEX_12_ATF" >
+		
+				<xsd:annotation>
+					<xsd:documentation>12-m Vertex antenna prototype </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="AEM_12_ATF" >
+		
+				<xsd:annotation>
+					<xsd:documentation>12-m AEM  antenna prototype </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="VERTEX_12" >
+		
+				<xsd:annotation>
+					<xsd:documentation>12-m Vertex antenna </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="IRAM_15" >
+		
+				<xsd:annotation>
+					<xsd:documentation>15-m IRAM antenna </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="UNDEFINED" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Not defined or not applicable. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="AntennaMakeList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="AntennaMake" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="AntennaMakes">
+		<xsd:restriction base="AntennaMakeList">
+			<xsd:maxLength value = "9" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

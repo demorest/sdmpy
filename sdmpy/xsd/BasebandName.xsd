@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File BasebandName.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="BasebandName">
+	
+		<xsd:annotation>
+			<xsd:documentation> Baseband names</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="NOBB" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband not applicable. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_1" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband one </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_2" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband two </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_3" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband three </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_4" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband four </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_5" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband five (not ALMA) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_6" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband six (not ALMA) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_7" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband seven (not ALMA) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_8" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Baseband eight (not ALMA) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BB_ALL" >
+		
+				<xsd:annotation>
+					<xsd:documentation>All ALMA basebands (i.e. all available basebands) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="A1C1_3BIT" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="A2C2_3BIT" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="AC_8BIT" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="B1D1_3BIT" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="B2D2_3BIT" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="BD_8BIT" >
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="BasebandNameList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="BasebandName" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="BasebandNames">
+		<xsd:restriction base="BasebandNameList">
+			<xsd:maxLength value = "16" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

@@ -14,7 +14,7 @@ def uid2fname(s):
 
 def sdmarray(s):
     """Convert an array-valued SDM entry (string) into a numpy array."""
-    fields = s.split()
+    fields = str(s).split()
     ndim = int(fields[0])
     dims = tuple(map(int,fields[1:ndim+1]))
     return numpy.array(fields[ndim+1:]).reshape(dims)
@@ -33,7 +33,7 @@ class Scan(object):
         self.idx = scanidx
         self._bdf = None
         self._bdf_fname = os.path.join(sdm.path, 'ASDMBinary', 
-            uid2fname(sdm['Main'][self.idx].dataUID))
+            uid2fname(str(sdm['Main'][self.idx].dataUID)))
 
     @property
     def bdf(self):

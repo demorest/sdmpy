@@ -3,13 +3,15 @@
 # sdm.py -- P. Demorest, 2015/03
 
 import os.path
-
-try:
-    from lxml import etree
-except ImportError:
-    from xml.etree import ElementTree as etree
+from lxml import etree, objectify
 
 from .scan import Scan
+
+_install_dir = os.path.abspath(os.path.dirname(__file__))
+_xsd_dir = os.path.join(_install_dir, 'xsd')
+_sdm_xsd = os.path.join(_xsd_dir, 'sdm_all.xsd')
+# Might want to make the schema location settable somehow?
+_sdm_parser = objectify.makeparser(schema=etree.XMLSchema(file=_sdm_xsd))
 
 class SDM(object):
     """
@@ -19,27 +21,24 @@ class SDM(object):
       path = path to SDM directory
 
     Attributes:
-      tables = list of tables with non-zero number of rows
+      tables = list of tables
       path   = full path to SDM directory
 
     SDM['TableName'] returns the relevant SDMTable object.
     """
-    def __init__(self,path='.'):
+    def __init__(self,path='.',use_xsd=True):
+        if use_xsd: parser = _sdm_parser
+        else: parser = None
         self._tables = {}
         self.path = os.path.abspath(path)
-        asdm = etree.parse(path+'/ASDM.xml').getroot()
-        for tab in asdm.iter('Table'):
-            name = tab.find('Name').text
-            nrows = int(tab.find('NumberRows').text)
-            if nrows>0:
-                try:
-                    self._tables[name] = SDMTable(name,path)
-                except IOError:
-                    pass
+        self._asdmtree = objectify.parse(path+'/ASDM.xml',parser)
+        self.asdm = self._asdmtree.getroot()
+        for tab in self.asdm.Table:
+            self._tables[tab.Name] = sdmtable(tab.Name,path,use_xsd=use_xsd)
 
     @property
     def tables(self):
-        """Return the list of non-empty table names"""
+        """Return the list of table names"""
         return self._tables.keys()
 
     def __getitem__(self,key):
@@ -48,6 +47,41 @@ class SDM(object):
     def scan(self,idx):
         """Return a Scan object for the given scan number."""
         return Scan(self,str(idx))
+
+    def _update_ASDM(self):
+        """Updates the ASDM table with the current number of rows."""
+        # TODO could check UIDs as well
+        for tab in self.asdm.Table:
+            try:
+                nrow = len(self[tab.Name])
+                tab.NumberRows = nrow
+            except TypeError:
+                # This is a workaround since len is not yet implemented for
+                # binary tables.
+                pass
+
+    def write(self,newpath):
+        """Write the SDM out to the new path location.  Currently does not
+        copy the BDFs or anything else under ASDMBinary."""
+        self._update_ASDM()
+        if not os.path.exists(newpath): os.mkdir(newpath)
+        # Write ASDM.xml
+        objectify.deannotate(self._asdmtree,cleanup_namespaces=True)
+        self._asdmtree.write(newpath+'/ASDM.xml',
+                encoding='utf=8', pretty_print=True, standalone=True)
+        # Call each table's write method for the rest
+        for tab in self.tables: self[tab].write(newpath)
+
+def sdmtable(name,path,*args,**kwargs):
+    """
+    Return the correct type of SDM table object (binary or XML).
+    """
+    fnamebase = os.path.join(path,str(name))
+    if os.path.exists(fnamebase + '.xml'):
+        return SDMTable(name,path,*args,**kwargs)
+    elif os.path.exists(fnamebase + '.bin'):
+        return SDMBinaryTable(name,path,*args,**kwargs)
+    return None
 
 def decap(s):
     return s[:1].lower() + s[1:] if s else ''
@@ -64,7 +98,7 @@ class SDMTable(object):
       path = Path to SDM directory
       idtag = Name of ID tag in table (defaults to nameId)
 
-    SDMTable[i] returns the i-th row as a SDMTableRow object
+    SDMTable[i] returns the i-th row as an lxml objectify object
     """
 
     # Any non-standard Id tag names can be listed here.
@@ -77,70 +111,93 @@ class SDMTable(object):
             'Scan': 'scanNumber',
             }
 
-    def __init__(self,name,path='.',idtag=None):
+    def __init__(self,name,path='.',idtag=None,use_xsd=True):
         self.name = name
         if idtag is None:
             try:
                 self.idtag = self._idtags[name]
             except KeyError:
-                self.idtag = decap(name) + 'Id'
+                self.idtag = decap(str(name)) + 'Id'
         else:
             self.idtag = idtag
-        table = etree.parse(path + '/' + name + '.xml').getroot()
-        entity = table.find('Entity')
-        self.entityId = entity.attrib['entityId']
-        self.rows = []
-        self._ids = {}
-        for row in table.iter('row'):
-            newrow = SDMTableRow(row)
-            self.rows.append(newrow)
-            if hasattr(newrow,self.idtag):
-                self._ids[getattr(newrow,self.idtag)] = len(self.rows)-1
+        if use_xsd: parser = _sdm_parser
+        else: parser = None
+        self._tree = objectify.parse(path+'/'+name+'.xml',parser)
+        self._table = self._tree.getroot()
+
+    @property
+    def entityId(self):
+        """Shortcut to entityId"""
+        return self._table.Entity.get('entityId')
+
+    @property
+    def containerId(self):
+        """Shortcut to ContainerEntity entityId"""
+        return self._table.ContainerEntity.get('entityId')
 
     def __getitem__(self,key):
         if type(key)==int:
-            return self.rows[key]
+            return self._table.row[key]
         else:
-            return self.rows[self._ids[key]]
+            # Search through the table and find the first with
+            # the matching id tag:
+            for r in self._table.row:
+                try:
+                    if str(getattr(r,self.idtag)) == key:
+                        return r
+                except AttributeError:
+                    pass
+            # No matching rows:
+            raise KeyError(key)
 
     def __len__(self):
-        return len(self.rows)
+        try:
+            return len(self._table.row)
+        except AttributeError:
+            return 0
 
-    @property
-    def ids(self):
-        return self._ids.keys()
+    def write(self,newpath,fname=None):
+        """
+        Write the updated XML file to the specified path.  Will be named 
+        TableName.xml unless overridden via the fname argument.
+        """
+        objectify.deannotate(self._tree, cleanup_namespaces=True)
+        if fname is None:
+            outf = os.path.join(newpath,self.name+'.xml')
+        else:
+            outf = os.path.join(newpath,fname)
+        self._tree.write(outf, encoding='utf-8', pretty_print=True,
+                standalone=True)
 
-class SDMTableRow(object):
+#class SDMTableRow(objectify.ObjectifiedElement):
+#    """
+#    In case we want to add any extra functionality to table rows, 
+#    could try to get this working.  Will require some lxml-fu, and is
+#    not currently implemented.
+#    """
+#
+#    def __str__(self):
+#        return str(self.__dict__)
+#
+#    @property
+#    def keys(self):
+#        return self.__dict__.keys()
+
+class SDMBinaryTable(object):
     """
-    Represents an individual row in an SDM Table.
-
-    Generally this should not be used directly, but as part of a full
-    SDM via the SDM and SDMTable classes.  
-
-    Init arguments:
-      element = etree XML element for row
-
-    Attributes:
-      keys = list of field names in row
-
-    Values accessed as SDMTableRow.keyname.  All values are kept as strings
-    for now.
+    Represents an SDM binary table.  Not really implemented yet, but will
+    read the data and write it back out when asked to do so by the main
+    SDM class.
     """
-    def __init__(self,element):
-        for c in element.getchildren():
-            ent_ref = c.find('EntityRef')
-            if ent_ref is None:
-                setattr(self,c.tag,c.text)
-            else:
-                # Could read more of the entity reference stuff..
-                setattr(self,c.tag,ent_ref.attrib['entityId'])
+    def __init__(self,name,path,use_xsd=None):
+        self.name = name
+        self._data = open(path+'/'+name+'.bin','r').read()
 
-    def __str__(self):
-        return str(self.__dict__)
+    def write(self,newpath,fname=None):
+        if fname is None:
+            outf = os.path.join(newpath,self.name+'.bin')
+        else:
+            outf = os.path.join(newpath,fname)
+        open(outf,'w').write(self._data)
 
-    @property
-    def keys(self):
-        return self.__dict__.keys()
 
-    def __getitem__(self,key):
-        return self.__dict__[key]

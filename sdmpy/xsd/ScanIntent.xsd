@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File ScanIntent.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="ScanIntent">
+	
+		<xsd:annotation>
+			<xsd:documentation> [ASDM.Scan] Scan intents</xsd:documentation>
+		</xsd:annotation>
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="CALIBRATE_AMPLI" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Amplitude calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_ATMOSPHERE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Atmosphere calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_BANDPASS" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Bandpass calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_DELAY" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Delay calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_FLUX" >
+		
+				<xsd:annotation>
+					<xsd:documentation>flux measurement scan. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_FOCUS" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Focus calibration scan. Z coordinate to be derived </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_FOCUS_X" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Focus calibration scan; X focus coordinate to be derived </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_FOCUS_Y" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Focus calibration scan; Y focus coordinate to be derived </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_PHASE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Phase calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_POINTING" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Pointing calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_POLARIZATION" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Polarization calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_SIDEBAND_RATIO" >
+		
+				<xsd:annotation>
+					<xsd:documentation>measure relative gains of sidebands. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_WVR" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Data from the water vapor radiometers (and correlation data) are used to derive their calibration parameters. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="DO_SKYDIP" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Skydip calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="MAP_ANTENNA_SURFACE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Holography calibration scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="MAP_PRIMARY_BEAM" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Data on a celestial calibration source are used to derive a map of the primary beam. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="OBSERVE_TARGET" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Target source scan </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_POL_LEAKAGE" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_POL_ANGLE" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="TEST" >
+		
+				<xsd:annotation>
+					<xsd:documentation>used for development. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="UNSPECIFIED" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Unspecified scan intent </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_ANTENNA_POSITION" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Requested by EVLA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_ANTENNA_PHASE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Requested by EVLA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="MEASURE_RFI" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Requested by EVLA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_ANTENNA_POINTING_MODEL" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Requested by EVLA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="SYSTEM_CONFIGURATION" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Requested by EVLA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_APPPHASE_ACTIVE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Calculate and apply phasing solutions. Applicable at ALMA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="CALIBRATE_APPPHASE_PASSIVE" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Apply previously obtained phasing solutions. Applicable at ALMA. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="OBSERVE_CHECK_SOURCE" >
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="ScanIntentList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="ScanIntent" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="ScanIntents">
+		<xsd:restriction base="ScanIntentList">
+			<xsd:maxLength value = "29" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>

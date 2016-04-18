@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+   ALMA - Atacama Large Millimeter Array
+  (c) European Southern Observatory, 2002
+  (c) Associated Universities Inc., 2002
+  Copyright by ESO (in the framework of the ALMA collaboration),
+  Copyright by AUI (in the framework of the ALMA collaboration),
+  All rights reserved.
+  
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+  
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY, without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+  
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA 02111-1307  USA
+   
+   /////////////////////////////////////////////////////////////////
+   // WARNING!  DO NOT MODIFY THIS FILE!                         
+   //  
+   // This is generated code!  Do not modify this file.  
+   // Any changes will be lost when the file is re-generated.
+   // 
+   /////////////////////////////////////////////////////////////////
+  
+   File CorrelatorName.xsd
+ -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         version="1 -1" >  
+	<xsd:simpleType name="CorrelatorName">
+	
+ 		<xsd:restriction base="xsd:NCName">
+     
+			<xsd:enumeration value="ALMA_ACA" >
+		
+				<xsd:annotation>
+					<xsd:documentation>ACA correlator </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_BASELINE" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_BASELINE_ATF" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="ALMA_BASELINE_PROTO_OSF" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="HERSCHEL" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="IRAM_PDB" >
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="IRAM_30M_VESPA" >
+		
+				<xsd:annotation>
+					<xsd:documentation>Up to 18000 channels. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="IRAM_WILMA" >
+		
+				<xsd:annotation>
+					<xsd:documentation>2 MHz, 18x930 MHz, HERA (wide) </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="NRAO_VLA" >
+		
+				<xsd:annotation>
+					<xsd:documentation>VLA correlator. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+			<xsd:enumeration value="NRAO_WIDAR" >
+		
+				<xsd:annotation>
+					<xsd:documentation>EVLA correlator. </xsd:documentation>
+				</xsd:annotation>
+		
+			</xsd:enumeration>
+     
+ 		</xsd:restriction>
+ 	</xsd:simpleType>
+
+
+<!--
+	Type for an item constrained by the union of enumerators.
+-->
+	<xsd:simpleType name="CorrelatorNameList">
+		<xsd:restriction>
+			<xsd:simpleType>
+				<xsd:list>
+					<xsd:simpleType>
+						<xsd:restriction base="CorrelatorName" />
+					</xsd:simpleType>
+				</xsd:list>
+			</xsd:simpleType>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name ="CorrelatorNames">
+		<xsd:restriction base="CorrelatorNameList">
+			<xsd:maxLength value = "10" />
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>
