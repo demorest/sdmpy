@@ -7,10 +7,7 @@
 # originally by Peter Williams.  So far this is somewhat targeted
 # to EVLA/WIDAR data files, it may not handle all the ALMA variants.
 
-try:
-    from lxml import etree
-except ImportError:
-    from xml.etree import ElementTree as etree
+from lxml import etree, objectify
 
 import os
 import sys
@@ -89,7 +86,7 @@ class BDF(object):
         b.numAntenna     # number of antennas
         b.numBaseline    # number of baselines
         b.numIntegration # number of integrations in file
-        b.sdmDataHeader  # XML etree version of full header
+        b.sdmDataHeader  # lxml objectify version of full header
 
     """
 
@@ -246,7 +243,7 @@ class BDF(object):
         sdmDataMime = self.read_mime_part(boundary=self.top_mime_bound)
         if sdmDataMime.loc != 'sdmDataHeader.xml':
             raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')
-        self.sdmDataHeader = etree.fromstring(sdmDataMime.body)
+        self.sdmDataHeader = objectify.fromstring(sdmDataMime.body)
         self.bin_size = {}
         self.bin_axes = {}
         for e in self.sdmDataHeader.iter():
@@ -294,7 +291,7 @@ class BDF(object):
 
     @property
     def numAntenna(self):
-        return int(self.sdmDataHeader.find(_ns+'numAntenna').text)
+        return int(self.sdmDataHeader.numAntenna)
 
     @property
     def numBaseline(self):
@@ -302,22 +299,21 @@ class BDF(object):
 
     @property
     def startTime(self):
-        return float(self.sdmDataHeader.find(_ns+'startTime').text)/86400.0e9
+        return float(self.sdmDataHeader.startTime)/86400.0e9
 
     def parse_spws(self):
         self.basebands = []
         self.spws = {}
-        dataStruct = self.sdmDataHeader.find(_ns+'dataStruct')
         # Offsets into the cross and data arrays where this spw
         # can be found.  This info could be reconstructed later
         # but seems convenient to do it here.
         cross_offset = 0
         auto_offset = 0
-        for bb in dataStruct.iterfind(_ns+'baseband'):
+        for bb in self.sdmDataHeader.dataStruct.baseband:
             bbname = bb.attrib['name']
             self.basebands.append(bbname)
             self.spws[bbname] = []
-            for spw_elem in bb.iterfind(_ns+'spectralWindow'):
+            for spw_elem in bb.spectralWindow:
                 # Build a list of spectral windows for each baseband
                 spw = SpectralWindow(spw_elem,cross_offset,auto_offset)
                 cross_offset += spw.dsize('cross')
@@ -436,13 +432,14 @@ class BDFIntegration(object):
         i.spws                 # dict of spws per baseband
         i.numAntenna           # obvious
         i.numBaseline          # "
-        i.sdmDataSubsetHeader  # XML etree version of full sub-header
+        i.sdmDataSubsetHeader  # lxml objectify version of full sub-header
 
     """
 
     def __init__(self,bdf,idx):
         # Get the main header
-        self.sdmDataSubsetHeader = etree.fromstring(bdf._raw(idx).body[0].body)
+        self.sdmDataSubsetHeader = objectify.fromstring(
+                bdf._raw(idx).body[0].body)
         # Copy some info from the BDF headers
         self.basebands = bdf.basebands
         self.spws = bdf.spws
@@ -476,13 +473,11 @@ class BDFIntegration(object):
 
     @property
     def time(self):
-        st = self.sdmDataSubsetHeader.find(_ns+'schedulePeriodTime')
-        return float(st.find(_ns+'time').text)/86400.0e9
+        return float(self.sdmDataSubsetHeader.schedulePeriodTime.time)/86400.0e9
 
     @property
     def interval(self):
-        st = self.sdmDataSubsetHeader.find(_ns+'schedulePeriodTime')
-        return float(st.find(_ns+'interval').text)*1e-9
+        return float(self.sdmDataSubsetHeader.schedulePeriodTime.interval)*1e-9
 
     def get_data(self,baseband,spwidx,type='cross'):
         """

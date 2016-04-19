@@ -33,7 +33,7 @@ class Scan(object):
         self.idx = scanidx
         self._bdf = None
         self._bdf_fname = os.path.join(sdm.path, 'ASDMBinary', 
-            uid2fname(str(sdm['Main'][self.idx].dataUID)))
+            uid2fname(sdm['Main'][self.idx].dataUID.EntityRef.get('entityId')))
 
     @property
     def bdf(self):
