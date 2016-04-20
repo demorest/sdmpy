@@ -98,7 +98,7 @@ class BDF(object):
         # to get sizes of the binary parts.  Note, the info stored in 
         # self.bin_size is in bytes, rather than the weird BDF units.
         mime_hdr = MIMEPart(self.fp).hdr
-        self.top_mime_bound = mime_hdr.mime_boundary
+        self.top_mime_bound = mime_hdr.boundary
         sdmDataMime = MIMEPart(self.fp,boundary=self.top_mime_bound)
         if sdmDataMime.loc != 'sdmDataHeader.xml':
             raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')

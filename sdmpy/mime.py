@@ -5,8 +5,8 @@
 # This class provdes MIME-parsing functionality suitable for reading
 # EVLA/ALMA Binary Data Format (BDF) files, and SDM binary tables.  It
 # is not meant to be a totally general MIME reader.  In particular,
-# MIME parts of binary type are not returned directed, rather an offset
-# into a file is given.
+# contents of binary type are not returned directed, rather an offset
+# into the file is given.
 
 import string
 
@@ -16,7 +16,7 @@ class MIMEHeader(dict):
     # or generating the MIME-format headers are collected here.
 
     @property
-    def mime_boundary(self):
+    def boundary(self):
         if self['Content-Type'][0].startswith('multipart/'):
             for v in self['Content-Type']:
                 if v.startswith('boundary='):
@@ -40,7 +40,7 @@ def basename_noext(path):
 
 class MIMEPart(object):
     """
-    Simple class for representing one part of a MIME message.
+    Class for representing one part of a MIME message.
     Has two member variable:
 
       hdr  = Dict of MIME header key/value pairs
@@ -153,7 +153,7 @@ class MIMEPart(object):
                     vals = self.hdr['Content-Type']
                     if vals[0].startswith('multipart/'):
                         multipart_type = True
-                        boundary = self.hdr.mime_boundary
+                        boundary = self.hdr.boundary
                         self.body = []
                     elif vals[0] == 'application/octet-stream':
                         binary_type = True
