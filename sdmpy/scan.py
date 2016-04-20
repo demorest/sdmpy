@@ -57,6 +57,10 @@ class Scan(object):
         return self.sdm['ConfigDescription'][self._main.configDescriptionId]
 
     @property
+    def source(self):
+        return self._scan.sourceName
+
+    @property
     def intents(self):
         """Return the list of intents for this scan."""
         return list(sdmarray(self._scan.scanIntent))
