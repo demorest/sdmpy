@@ -9,8 +9,9 @@
 # into the file is given.
 
 import string
+from collections import OrderedDict
 
-class MIMEHeader(dict):
+class MIMEHeader(OrderedDict):
     # MIMEHeader is a dict with keys equal to the mime header keywords
     # and values equal to lists of entries.  Helper functions for parsing
     # or generating the MIME-format headers are collected here.
@@ -32,6 +33,28 @@ class MIMEHeader(dict):
         key = line[:idx]
         vals = map(string.strip, line[idx+1:].split(';'))
         self[key] = vals
+
+    @staticmethod
+    def _asline(key,val):
+        """Convert given key and value list to MIME header line."""
+        return key + ': ' + string.join(val, '; ') + '\n'
+
+    def tostring(self,key=None):
+        """
+        Return contents as in MIME-header format.  If key is given, only
+        the line corresponding to the requested key will be returned,
+        otherwise the full header will be returned.
+        """
+        if key is not None:
+            return self._asline(key,self[key])
+        else:
+            out = ''
+            for k in self.keys():
+                out += self._asline(k,self[k])
+            return out
+
+    def __str__(self):
+        return self.tostring()
 
 # TODO make a utils.py to hold stuff like this
 import os
