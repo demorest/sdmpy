@@ -16,37 +16,8 @@ import re
 import mmap
 import math
 import numpy
-from collections import namedtuple
 
-class MIMEPart(namedtuple('MIMEPart','hdr body')):
-    """
-    Simple class for representing one part of a MIME message.
-    Has two member variable:
-
-      hdr  = Dict of MIME header key/value pairs
-      body = Body of message.  In our usage, can be a file offset in bytes
-             (for binary parts), a string (for text) or a list of MIMEPart
-             objects (for multipart).
-
-    The loc property is a shortcut for the Content-Location header
-    parameter.
-
-    The type property is a shortcut for Content-Type
-    """
-
-    @property
-    def loc(self):
-        try:
-            return self.hdr['Content-Location'][0]
-        except KeyError:
-            return None
-
-    @property
-    def type(self):
-        try:
-            return self.hdr['Content-Type'][0]
-        except KeyError:
-            return None
+from .mime import MIMEPart
 
 def basename_noext(path):
     return os.path.basename(os.path.splitext(path)[0])
@@ -98,118 +69,6 @@ class BDF(object):
         self.read_mime()
         self.parse_spws()
 
-    @staticmethod
-    def split_mime(line):
-        idx = line.index(':')
-        key = line[:idx]
-        vals = map(string.strip, line[idx+1:].split(';'))
-        return (key, vals)
-
-    @staticmethod
-    def mime_boundary(mime_hdr):
-        if mime_hdr['Content-Type'][0].startswith('multipart/'):
-            for v in mime_hdr['Content-Type']:
-                if v.startswith('boundary='):
-                    return v[v.index('=')+1:]
-        return None
-
-    def read_mime_part(self,boundary=None,recurse=False):
-        """
-        Read a MIME content part starting at the current file location.
-        Return value is a MIMEPart object, which has elements:
-
-            hdr    dict of MIME header key / value pairs
-
-            body   string if Content-Type was 'text/xml', offset into
-                   the file if 'application/octet-stream', or list of
-                   other MIMEParts for a 'multipart/*'.
-
-        If recurse is True, will read/return the contents of a multipart
-        (and any multiparts found at lower levels).  Otherwise will read
-        one header/body unit and pointer will be left at the start of 
-        the next one (or first sub-part for multiparts).
-        """
-        hdr = {}
-        body = None
-        in_hdr = True
-        binary_type = False
-        multipart_type = False
-        # Note, need to use readline() rather than iterating over file
-        # because we need to recover file positions and seek ahead.
-        # The "for line in file" type loop reads ahead so is not compatible
-        # with this approach.
-        while True:
-
-            line = self.fp.readline()
-
-            # hit EOF
-            if line=='':
-                return MIMEPart(hdr, body)
-
-            # Check for multipart boundary marker
-            if boundary is not None:
-                if in_hdr:
-                    # If we are starting, ignore a 'start' marker,
-                    # quit on a 'done' marker
-                    if line=='--'+boundary+'\n':
-                        continue
-                    elif line=='--'+boundary+'--\n':
-                        return MIMEPart({}, None)
-                else:
-                    # This marks the end of a part, rewind so that the 
-                    # next part can be parsed, and return results
-                    if line.startswith('--' + boundary):
-                        self.fp.seek(-len(line),1)
-                        return MIMEPart(hdr, body)
-
-            if line=='\n':
-                # Got blank line, the next part will be body.  We
-                # want to skip it if this is a binary part, otherwise
-                # read and return the body.
-                in_hdr = False
-                if binary_type:
-                    # Note the location within the file and skip
-                    # ahead by the correct amount.
-                    bin_name = basename_noext(hdr['Content-Location'][0])
-                    body = self.fp.tell()
-                    # Need to add one extra byte for the newline
-                    self.fp.seek(self.bin_size[bin_name]+1, 1)
-                elif multipart_type:
-                    if recurse:
-                        # Parse the parts and add to a list
-                        while True:
-                            #print "recur b='%s'" % boundary 
-                            pmime = self.read_mime_part(boundary=boundary,
-                                        recurse=True)
-                            #print phdr
-                            #print pbody
-                            if pmime.hdr == {}:
-                                return MIMEPart(hdr,body)
-                            else:
-                                body.append(pmime)
-                continue
-
-            if in_hdr:
-                # Still in the header, parse the line as MIME key/val
-                (key, vals) = self.split_mime(line)
-                hdr[key] = vals
-                if key=='Content-Type':
-                    if vals[0].startswith('multipart/'):
-                        multipart_type = True
-                        boundary = self.mime_boundary(hdr)
-                        body = []
-                    elif vals[0] == 'application/octet-stream':
-                        binary_type = True
-            else:
-                if not binary_type:
-                    # In body part of a non-binary type
-                    if body is None: body = line
-                    else: body += line
-                else:
-                    # Should not really get here, means size calculation
-                    # failed or file is otherwise messed up... what to do?
-                    raise RuntimeError('BDF MIME parsing failure')
-
     # Size in bytes of each data element. In principle, the crossData 
     # type needs to be read from the headers while all others have 
     # pre-set values...
@@ -238,9 +97,9 @@ class BDF(object):
         # First we need to read and parse only the main XML header in order
         # to get sizes of the binary parts.  Note, the info stored in 
         # self.bin_size is in bytes, rather than the weird BDF units.
-        mime_hdr = self.read_mime_part().hdr
-        self.top_mime_bound = self.mime_boundary(mime_hdr)
-        sdmDataMime = self.read_mime_part(boundary=self.top_mime_bound)
+        mime_hdr = MIMEPart(self.fp).hdr
+        self.top_mime_bound = mime_hdr.mime_boundary
+        sdmDataMime = MIMEPart(self.fp,boundary=self.top_mime_bound)
         if sdmDataMime.loc != 'sdmDataHeader.xml':
             raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')
         self.sdmDataHeader = objectify.fromstring(sdmDataMime.body)
@@ -258,7 +117,9 @@ class BDF(object):
         # requested, rather than parsing the whole file here.
         if 'EVLA' in mime_hdr['Content-Description'][0] and not full_read:
             self.offset_ints = self.fp.tell() # Offset in file to first integ
-            self.mime_ints = [self.read_mime_part(boundary=self.top_mime_bound,
+            self.mime_ints = [MIMEPart(self.fp,
+                boundary=self.top_mime_bound,
+                binary_size=self.bin_size,
                 recurse=True),]
             # Compute size of each integration section:
             self.size_ints = self.fp.tell() - self.offset_ints
@@ -271,14 +132,19 @@ class BDF(object):
         # and parse the whole MIME structure to map it out.
         else:
             self.fp.seek(0,0) # reset to start again
-            full_mime = self.read_mime_part(recurse=True)
+            full_mime = MIMEPart(self.fp,
+                    recurse=True, binary_size=self.bin_size)
             self.mime_ints = full_mime.body[1:]
 
     def _raw(self,idx):
         if self.mime_ints[idx] is not None: return self.mime_ints[idx]
         # Need to read this one
         self.fp.seek(self.offset_ints + idx*self.size_ints, 0)
-        self.mime_ints[idx] = self.read_mime_part(boundary=self.top_mime_bound,recurse=True)
+        #self.mime_ints[idx] = self.read_mime_part(boundary=self.top_mime_bound,recurse=True)
+        self.mime_ints[idx] = MIMEPart(self.fp, 
+                boundary=self.top_mime_bound, 
+                binary_size=self.bin_size,
+                recurse=True)
         return self.mime_ints[idx]
 
     @property
