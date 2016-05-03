@@ -48,6 +48,13 @@ class SDM(object):
         """Return a Scan object for the given scan number."""
         return Scan(self,str(idx))
 
+    def scans(self):
+        """Iterate over scans."""
+        # List of SDM scan numbers:
+        scanidx = [s.scanNumber for s in self['Scan']]
+        for idx in scanidx:
+            yield self.scan(idx)
+
     def _update_ASDM(self):
         """Updates the ASDM table with the current number of rows."""
         # TODO could check UIDs as well
