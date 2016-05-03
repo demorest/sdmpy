@@ -400,10 +400,13 @@ def gaincal(data,axis=0,ref=0):
 
 class BDFWriter(object):
     """
-    Write a BDF file from the input bdf object, potentially keeping only
-    a subset of integrations.
+    Write a BDF file.
     """
     def __init__(self, fname, bdf=None):
+        """Init BDFWrite with output filename (fname).  If the bdf
+        argument contains a BDF object, its header is copied for the
+        output file.  Otherwise the BDFWrite.sdmDataHeader needs to 
+        be populated."""
         self.fname = fname
         self.fp = None
         self.curidx = 1
@@ -417,6 +420,7 @@ class BDFWriter(object):
             self.sdmDataHeader = deepcopy(bdf.sdmDataHeader)
 
     def write_header(self):
+        """Open output and write the current header contents."""
         self.fp = open(self.fname,'w')
         tophdr = MIMEHeader()
         tophdr['MIME-Version'] = ['1.0',]
@@ -438,6 +442,9 @@ class BDFWriter(object):
             standalone=True,encoding='utf-8') + '\n')
 
     def write_integration(self,bdf_int):
+        """Input is a BDFIntegration object.  The projectPath will be updated
+        so that it is consistent for the file being written but otherwise
+        no changes are made to the contents."""
         tophdr = MIMEHeader()
         tophdr['Content-Type'] = ['multipart/related', 'boundary='+self.mb2]
         tophdr['Content-Description'] = ['data and metadata subset',]
