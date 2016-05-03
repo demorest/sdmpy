@@ -16,8 +16,9 @@ import re
 import mmap
 import math
 import numpy
+from copy import deepcopy
 
-from .mime import MIMEPart
+from .mime import MIMEPart, MIMEHeader
 
 def basename_noext(path):
     return os.path.basename(os.path.splitext(path)[0])
@@ -396,4 +397,117 @@ def gaincal(data,axis=0,ref=0):
     outdims = range(axis) + [-1,] + range(axis,ndim-1)
     return result.transpose(outdims)
 
+
+class BDFWriter(object):
+    """
+    Write a BDF file from the input bdf object, potentially keeping only
+    a subset of integrations.
+    """
+    def __init__(self, fname, bdf=None):
+        self.fname = fname
+        self.fp = None
+        self.curidx = 1
+        self.mb1 = "MIME_boundary-1"
+        self.mb2 = "MIME_boundary-2"
+        self.len0 = 0
+        self.len1 = 0
+        self.len2 = 0
+        self.sdmDataHeader = None
+        if bdf is not None: 
+            self.sdmDataHeader = deepcopy(bdf.sdmDataHeader)
+
+    def write_header(self):
+        self.fp = open(self.fname,'w')
+        tophdr = MIMEHeader()
+        tophdr['MIME-Version'] = ['1.0',]
+        tophdr['Content-Type'] = ['multipart/mixed', 'boundary='+self.mb1]
+        tophdr['Content-Description'] = [
+                'EVLA/CORRELATOR/WIDAR/FULL_RESOLUTION',]
+        # How do we generate a new unique name?
+        nsxl = self.sdmDataHeader.nsmap['xl']
+        uid = self.sdmDataHeader.dataOID.attrib['{%s}href'%nsxl][5:]
+        tophdr['Content-Location'] = ['http://evla.nrao.edu/wcbe/XSDM' + uid,]
+        self.fp.write(tophdr.tostring() + '\n')
+
+        self.fp.write('--' + self.mb1 + '\n')
+        xhdr = MIMEHeader()
+        xhdr['Content-Type'] = ['text/xml', 'charset=utf-8']
+        xhdr['Content-Location'] = ['sdmDataHeader.xml',]
+        self.fp.write(xhdr.tostring() + '\n')
+        self.fp.write(etree.tostring(self.sdmDataHeader,
+            standalone=True,encoding='utf-8') + '\n')
+
+    def write_integration(self,bdf_int):
+        tophdr = MIMEHeader()
+        tophdr['Content-Type'] = ['multipart/related', 'boundary='+self.mb2]
+        tophdr['Content-Description'] = ['data and metadata subset',]
+
+        ppidx = self.sdmDataHeader.attrib['projectPath'] + '%d/' % self.curidx
+
+        hdr = MIMEHeader()
+        hdr['Content-Type'] = ['text/xml', 'charset=utf-8']
+        hdr['Content-Location'] = [ppidx + 'desc.xml']
+        if self.len0==0:
+            self.len0 = len(hdr.tostring()) + 12
+        nxpad = self.len0 - len(hdr.tostring())
+        if nxpad<0: 
+            raise RuntimeError('nxpad(0)<0')
+        hdr['X-pad'] = ['*'*nxpad,]
+
+        # Update subhdr with new path
+        subhdr = deepcopy(bdf_int.sdmDataSubsetHeader)
+        subhdr.attrib['projectPath'] = ppidx
+        nsxl = subhdr.nsmap['xl']
+        dtypes = []
+        mhdr = {}
+        for dtype in ('crossData', 'autoData'):
+            try:
+                loc = ppidx + dtype + '.bin'
+                getattr(subhdr,dtype).attrib['{%s}href'%nsxl] = loc
+                dtypes += [dtype,]
+                mhdr[dtype] = MIMEHeader()
+                mhdr[dtype]['Content-Type'] = ['application/octet-stream']
+                mhdr[dtype]['Content-Location'] = [loc]
+            except AttributeError:
+                pass
+
+        # Figure out how much X-pad to add
+        subhdr_str = etree.tostring(subhdr, standalone=True, encoding='utf-8')
+        if self.len1==0:
+            self.len1 = len(subhdr_str) + len(mhdr[dtypes[0]].tostring()) + 50
+        nxpad = self.len1 - (len(subhdr_str) + len(mhdr[dtypes[0]].tostring()))
+        mhdr[dtypes[0]]['X-pad'] = ['*'*nxpad,]
+
+        # Assumes at most 2 data types.. TODO make more general
+        if len(dtypes)>1:
+            if self.len2==0:
+                self.len2 = len(mhdr[dtypes[1]].tostring()) + 12
+            nxpad = self.len2 - len(mhdr[dtypes[1]].tostring())
+            mhdr[dtypes[1]]['X-pad'] = ['*'*nxpad,]
+
+        # TODO could check that data sizes match up with header info..
+
+        # Now write it all out..
+        self.fp.write('--' + self.mb1 + '\n')
+        self.fp.write(tophdr.tostring()+'\n')
+
+        # XML subheader part
+        self.fp.write('--' + self.mb2 + '\n')
+        self.fp.write(hdr.tostring() + '\n')
+        self.fp.write(subhdr_str)
+
+        # Data parts
+        for dtype in dtypes:
+            self.fp.write('\n--' + self.mb2 + '\n')
+            self.fp.write(mhdr[dtype].tostring() + '\n')
+            orig_path = bdf_int.projectPath + dtype + '.bin'
+            self.fp.write(bdf_int.data[orig_path])
+
+        # Close out mime
+        self.fp.write('\n--' + self.mb2 + '--\n')
+        self.curidx += 1
+
+    def close(self):
+        self.fp.write('--' + self.mb1 + '--\n')
+        self.fp.close()
 
