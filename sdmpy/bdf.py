@@ -331,7 +331,7 @@ class BDFIntegration(object):
                 shape=(self.numAntenna,-1)
             else:
                 shape=(-1,) # Don't know what to do, just leave flat array
-            self.data[m.loc] = numpy.frombuffer(bdf.mmdata[m.body:m.body+bsize],
+            self.data[btype] = numpy.frombuffer(bdf.mmdata[m.body:m.body+bsize],
                     dtype=bdf.bin_dtype[btype]).reshape(shape)
 
     @property
@@ -358,10 +358,10 @@ class BDFIntegration(object):
         """
         spw = self.spws[baseband][spwidx]
         if type[0].lower()=='c': 
-            loc = self.projectPath + 'crossData.bin'
+            loc = 'crossData'
             offs = spw.cross_offset
         elif type[0].lower()=='a': 
-            loc = self.projectPath + 'autoData.bin'
+            loc = 'autoData'
             offs = spw.auto_offset
         else:
             raise RuntimeError('Unsupported data type')
@@ -507,8 +507,7 @@ class BDFWriter(object):
         for dtype in dtypes:
             self.fp.write('\n--' + self.mb2 + '\n')
             self.fp.write(mhdr[dtype].tostring() + '\n')
-            orig_path = bdf_int.projectPath + dtype + '.bin'
-            self.fp.write(bdf_int.data[orig_path])
+            self.fp.write(bdf_int.data[dtype])
 
         # Close out mime
         self.fp.write('\n--' + self.mb2 + '--\n')
