@@ -116,6 +116,7 @@ class SDMTable(object):
     _idtags = {
             'Main': 'scanNumber',
             'Scan': 'scanNumber',
+            'Subscan': 'scanNumber',
             }
 
     def __init__(self,name,path='.',idtag=None,use_xsd=True):

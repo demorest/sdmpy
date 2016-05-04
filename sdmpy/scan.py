@@ -52,6 +52,11 @@ class Scan(object):
         return self.sdm['Scan'][self.idx]
 
     @property
+    def _subscan(self):
+        """Convenience interface to the SDM Subscan table row."""
+        return self.sdm['Subscan'][self.idx]
+
+    @property
     def _config(self):
         """Convenience interfact to the SDM ConfigDescription row."""
         return self.sdm['ConfigDescription'][self._main.configDescriptionId]
