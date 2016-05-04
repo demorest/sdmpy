@@ -75,7 +75,7 @@ class SDM(object):
         # Write ASDM.xml
         objectify.deannotate(self._asdmtree,cleanup_namespaces=True)
         self._asdmtree.write(newpath+'/ASDM.xml',
-                encoding='utf=8', pretty_print=True, standalone=True)
+                encoding='utf-8', pretty_print=True, standalone=True)
         # Call each table's write method for the rest
         for tab in self.tables: self[tab].write(newpath)
 
