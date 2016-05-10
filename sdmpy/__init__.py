@@ -6,3 +6,4 @@ Python for ALMA/VLA Science Data Model (SDM).
 # Things that should be auto-imported
 from .sdm import SDM
 from .bdf import BDF
+from . import calib
