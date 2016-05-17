@@ -10,17 +10,22 @@ from numpy import linalg
 
 from .bdf import ant2bl, bl2ant
 
-def gaincal(data,axis=0,ref=0):
+def gaincal(data,axis=0,ref=0,avg=[]):
     """Derives amplitude/phase calibration factors from the data array
     for the given baseline axis.  In the returned array, the baseline
     dimension is converted to antenna.  No other axes are modified.
     Note this internally makes a transposed copy of the data so be 
-    careful with memory usage in the case of large data sets."""
+    careful with memory usage in the case of large data sets.  A list
+    of axes to average over before solving can be given in the avg 
+    argument (length-1 dimensions are kept so that the solution can be
+    applied to the original data)."""
     nbl = data.shape[axis]
     ndim = len(data.shape)
     (check,nant) = bl2ant(nbl)
     if check!=0:
         raise RuntimeError("Specified axis dimension (%d) is not a valid number of baselines" % nbl)
+    for a in avg:
+        data = data.mean(axis=a,keepdims=True)
     tdata = np.zeros(data.shape[:axis]+data.shape[axis+1:]+(nant,nant),
             dtype=data.dtype)
     for i in range(nbl):
