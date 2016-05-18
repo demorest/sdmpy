@@ -23,7 +23,11 @@ os.mkdir(bdfoutpath)
 
 for scan in sdm.scans():
     print "Processing '%s' scan %s:" % (sdmname, scan.idx)
-    bdf = scan.bdf
+    try:
+        bdf = scan.bdf
+    except IOError:
+        print "Error reading bdf for scan %s, skipping" % (scan.idx,)
+        continue
     # TODO maybe rename BDFs...
     # Also this assumes averaging time is the same during the whole
     # BDF.  This is always true for VLA data.
