@@ -19,6 +19,7 @@ class SDM(object):
 
     Init arguments:
       path = path to SDM directory
+      bdfdir = different directory to search for bdfs (optional, for pre-archive SDMs)
 
     Attributes:
       tables = list of tables
@@ -26,11 +27,12 @@ class SDM(object):
 
     SDM['TableName'] returns the relevant SDMTable object.
     """
-    def __init__(self,path='.',use_xsd=True):
+    def __init__(self,path='.',use_xsd=True, bdfdir=''):
         if use_xsd: parser = _sdm_parser
         else: parser = None
         self._tables = {}
         self.path = os.path.abspath(path)
+        self.bdfdir = bdfdir
         self._asdmtree = objectify.parse(path+'/ASDM.xml',parser)
         self.asdm = self._asdmtree.getroot()
         for tab in self.asdm.Table:
