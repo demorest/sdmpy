@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='sdmpy',
-      version='0.0',
+      version='1.3',
       description='Python for ALMA/VLA Science Data Model',
       author='Paul Demorest',
       author_email='pdemores@nrao.edu',
