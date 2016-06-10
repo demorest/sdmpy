@@ -10,7 +10,7 @@ from numpy import linalg
 
 from .bdf import ant2bl, bl2ant
 
-def gaincal(data,axis=0,ref=0,avg=[]):
+def gaincal(data,axis=0,ref=0,avg=[],nit=3):
     """Derives amplitude/phase calibration factors from the data array
     for the given baseline axis.  In the returned array, the baseline
     dimension is converted to antenna.  No other axes are modified.
@@ -32,15 +32,21 @@ def gaincal(data,axis=0,ref=0,avg=[]):
         (a0,a1) = bl2ant(i)
         tdata[...,a0,a1] = data.take(i,axis=axis)
         tdata[...,a1,a0] = np.conj(data.take(i,axis=axis))
-    (w,v) = linalg.eigh(tdata)
-    result = np.sqrt(w[...,-1]).T*v[...,-1].T
+    for it in range(nit):
+        (wtmp,vtmp) = linalg.eigh(tdata)
+        v = vtmp[...,-1].copy()
+        w = wtmp[...,-1]
+        for i in range(nant):
+            tdata[...,i,i] = w*(v.real[...,i]**2 + v.imag[...,i]**2)
+    #result = np.sqrt(w[...,-1]).T*v[...,-1].T
+    result = np.sqrt(w).T*v.T
     # First axis is now antenna.. refer all phases to reference ant
     result = (result*np.conj(result[ref])/np.abs(result[ref])).T
     # TODO try to reduce number of transposes
     outdims = range(axis) + [-1,] + range(axis,ndim-1)
     return result.transpose(outdims)
 
-def applycal(data,caldata,axis=0):
+def applycal(data,caldata,axis=0,phaseonly=False):
     """Apply the complex gain calibration given in the caldata array
     to the data array.  The baseline/antenna axis must be specified in
     the axis argument.  Dimensions of all other axes must match up 
@@ -53,6 +59,9 @@ def applycal(data,caldata,axis=0):
         raise RuntimeError("Specified axis dimension (%d) is not a valid number of baselines" % nbl)
     if nant!=nant_check:
         raise RuntimeError("Number of antennas does not match (data=%d, caldata=%d)" % (nant_check, nant))
+    if phaseonly:
+        caldata = caldata.copy()/abs(caldata)
+        caldata[np.where(np.isfinite(caldata)==False)] = 0.0j
     # Modifies data in place.  Would it be better to return a calibrated
     # copy instead of touching the original?
     for ibl in range(nbl):
