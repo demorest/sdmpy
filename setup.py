@@ -9,6 +9,7 @@ setup(name='sdmpy',
       author_email='pdemores@nrao.edu',
       url='http://github.com/demorest/sdmpy',
       packages=['sdmpy'],
+      install_requires=['lxml', 'numpy'],
       package_data={'sdmpy':['xsd/*.xsd',]},
       scripts=['scripts/bdf_average.py']
      )
