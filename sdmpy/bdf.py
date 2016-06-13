@@ -54,7 +54,7 @@ class BDF(object):
     either b.get_integration(idx) or b[idx].  Other useful methods include:
 
         b.basebands      # list of baseband ids
-        b.spws           # dict of spectral windows per baseband
+        b.spws           # list of spectral windows per baseband
         b.numAntenna     # number of antennas
         b.numBaseline    # number of baselines
         b.numIntegration # number of integrations in file
@@ -170,7 +170,7 @@ class BDF(object):
 
     def parse_spws(self):
         self.basebands = []
-        self.spws = {}
+        self.spws = []
         # Offsets into the cross and data arrays where this spw
         # can be found.  This info could be reconstructed later
         # but seems convenient to do it here.
@@ -179,13 +179,13 @@ class BDF(object):
         for bb in self.sdmDataHeader.dataStruct.baseband:
             bbname = bb.attrib['name']
             self.basebands.append(bbname)
-            self.spws[bbname] = []
+            self.spws = []
             for spw_elem in bb.spectralWindow:
                 # Build a list of spectral windows for each baseband
-                spw = SpectralWindow(spw_elem,cross_offset,auto_offset)
+                spw = BDFSpectralWindow(spw_elem,cross_offset,auto_offset)
                 cross_offset += spw.dsize('cross')
                 auto_offset += spw.dsize('auto')
-                self.spws[bbname].append(spw)
+                self.spws.append(spw)
 
     def get_integration(self,idx):
         return BDFIntegration(self,idx)
@@ -193,14 +193,14 @@ class BDF(object):
     def __getitem__(self,idx):
         return self.get_integration(idx)
 
-    def get_data(self,baseband,spw,type='cross',scrunch=False,
+    def get_data(self,spwidx,type='cross',scrunch=False,
             fscrunch=False,frange=None):
         """Returns an array containing all integrations for the specified
         baseband, spw and data type.  If scrunch=True, all integrations
         will be averaged."""
         chidx = -2 # index of spectral channels
         # Read first integration to get shapes, etc
-        subdat = self.get_integration(0).get_data(baseband,spw,type)
+        subdat = self.get_integration(0).get_data(spwidx,type)
         if scrunch:
             dshape = subdat.shape
         else:
@@ -211,11 +211,11 @@ class BDF(object):
         for i in range(self.numIntegration):
             if fscrunch:
                 if frange is None:
-                    dat = self.get_integration(i).get_data(baseband,spw,type).mean(chidx)
+                    dat = self.get_integration(i).get_data(spwidx,type).mean(chidx)
                 else:
-                    dat = self.get_integration(i).get_data(baseband,spw,type).take(range(*frange),axis=chidx).mean(chidx)
+                    dat = self.get_integration(i).get_data(spwidx,type).take(range(*frange),axis=chidx).mean(chidx)
             else:
-                dat = self.get_integration(i).get_data(baseband,spw,type)
+                dat = self.get_integration(i).get_data(spwidx,type)
             if scrunch:
                 result += dat
             else:
@@ -224,8 +224,11 @@ class BDF(object):
             result /= float(self.numIntegration)
         return result
 
-class SpectralWindow(object):
-    """Spectral window class.  Initialize from the XML element."""
+class BDFSpectralWindow(object):
+    """Class that represents spectral window information present in BDF files,
+    including storing appropriate offsets into the main data array.  Should be 
+    initialized from the spectralWindow XML element from the main BDF 
+    header."""
 
     def __init__(self, spw_elem, cross_offset=None, auto_offset=None):
         self._attrib = spw_elem.attrib
@@ -289,9 +292,8 @@ class BDFIntegration(object):
         i = b.get_integration(5)
         i = b[5]
 
-        # Read the cross-corr data array for spectral window 0 in 
-        # the AC baseband:
-        dat = i.get_data('AC_8BIT',0)
+        # Read the cross-corr data array for spectral window 0 
+        dat = i.get_data(0)
 
     Other potentially useful info:
 
@@ -346,17 +348,16 @@ class BDFIntegration(object):
     def interval(self):
         return float(self.sdmDataSubsetHeader.schedulePeriodTime.interval)*1e-9
 
-    def get_data(self,baseband,spwidx,type='cross'):
+    def get_data(self,spwidx,type='cross'):
         """
         Return the data array for the given subset.  Inputs are:
 
-            baseband:  baseband ID string
-            spwidx:    spw index within baseband
+            spwidx:    spw index within file
             type:      'cross' or 'auto' (default 'cross')
 
         The returned array shape is (nBl/nAnt, nBin, nSpp, nPol).
         """
-        spw = self.spws[baseband][spwidx]
+        spw = self.spws[spwidx]
         if type[0].lower()=='c': 
             loc = 'crossData'
             offs = spw.cross_offset
