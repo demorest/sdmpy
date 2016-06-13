@@ -10,5 +10,5 @@ setup(name='sdmpy',
       url='http://github.com/demorest/sdmpy',
       packages=['sdmpy'],
       package_data={'sdmpy':['xsd/*.xsd',]},
-      scripts=['scripts/bdf_average.py']
+      scripts=['scripts/bdf_average.py','scripts/bdf_bin_split.py']
      )
