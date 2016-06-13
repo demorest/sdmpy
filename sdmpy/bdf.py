@@ -176,10 +176,10 @@ class BDF(object):
         # but seems convenient to do it here.
         cross_offset = 0
         auto_offset = 0
+        self.spws = []
         for bb in self.sdmDataHeader.dataStruct.baseband:
             bbname = bb.attrib['name']
             self.basebands.append(bbname)
-            self.spws = []
             for spw_elem in bb.spectralWindow:
                 # Build a list of spectral windows for each baseband
                 spw = BDFSpectralWindow(spw_elem,cross_offset,auto_offset)
@@ -193,7 +193,7 @@ class BDF(object):
     def __getitem__(self,idx):
         return self.get_integration(idx)
 
-    def get_data(self,spwidx,type='cross',scrunch=False,
+    def get_data(self,spwidx='all',type='cross',scrunch=False,
             fscrunch=False,frange=None):
         """Returns an array containing all integrations for the specified
         baseband, spw and data type.  If scrunch=True, all integrations
@@ -280,6 +280,17 @@ class BDFSpectralWindow(object):
         data elements (real for auto, complex for cross)."""
         return numpy.product(self.dshape(type))
 
+    @staticmethod
+    def dims_match(spwlist,type):
+        """Given a list of BDFSpectralWindow objects, return true if all
+        of them have consistent array dimensions."""
+        if len(spwlist)==1: 
+            return True
+        for spw in spwlist[1:]:
+            if spwlist[0].dshape(type) != spw.dshape(type):
+                return False
+        return True
+
 class BDFIntegration(object):
     """
     Describes and holds data for a single intgration within a BDF file.
@@ -348,7 +359,7 @@ class BDFIntegration(object):
     def interval(self):
         return float(self.sdmDataSubsetHeader.schedulePeriodTime.interval)*1e-9
 
-    def get_data(self,spwidx,type='cross'):
+    def get_data(self,spwidx='all',type='cross'):
         """
         Return the data array for the given subset.  Inputs are:
 
@@ -356,13 +367,28 @@ class BDFIntegration(object):
             type:      'cross' or 'auto' (default 'cross')
 
         The returned array shape is (nBl/nAnt, nBin, nSpp, nPol).
+
+        If spwidx is 'all' and the array dimensions of all spectral
+        windows match, all will be returned in a single array.  In this case
+        the returned dimensions will be (nBl/nAnt, nSpw, nBin, nSpp, nPol).
         """
-        spw = self.spws[spwidx]
         if type[0].lower()=='c': 
             loc = 'crossData'
-            offs = spw.cross_offset
         elif type[0].lower()=='a': 
             loc = 'autoData'
+        else:
+            raise RuntimeError('Unsupported data type')
+        if spwidx=='all':
+            if not BDFSpectralWindow.dims_match(self.spws,type):
+                raise RuntimeError('BDFIntegration: ' +
+                        'mixed array dimensions, spws must be ' +
+                        'retrieved indivdually')
+            dshape = (-1, len(self.spws)) + self.spws[0].dshape(type)
+            return self.data[loc].reshape(dshape)
+        spw = self.spws[spwidx]
+        if loc == 'crossData': 
+            offs = spw.cross_offset
+        elif loc == 'autoData': 
             offs = spw.auto_offset
         else:
             raise RuntimeError('Unsupported data type')
