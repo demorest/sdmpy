@@ -194,21 +194,29 @@ class BDF(object):
         return self.get_integration(idx)
 
     def get_data(self,spwidx='all',type='cross',scrunch=False,
-            fscrunch=False,frange=None):
+            fscrunch=False,frange=None,trange=None):
         """Returns an array containing all integrations for the specified
         baseband, spw and data type.  If scrunch=True, all integrations
         will be averaged."""
         chidx = -2 # index of spectral channels
+        # Figure out ranges:
+        if trange is None:
+            i0 = 0
+            i1 = self.numIntegration
+        else:
+            i0 = trange[0]
+            i1 = trange[1]
         # Read first integration to get shapes, etc
-        subdat = self.get_integration(0).get_data(spwidx,type)
+        nsubout = i1 - i0
+        subdat = self.get_integration(i0).get_data(spwidx,type)
         if scrunch:
             dshape = subdat.shape
         else:
-            dshape = (self.numIntegration,) + subdat.shape
+            dshape = (nsubout,) + subdat.shape
         if fscrunch:
             dshape = dshape[:chidx] + dshape[chidx+1:]
         result = numpy.zeros(dshape,dtype=subdat.dtype)
-        for i in range(self.numIntegration):
+        for i in range(i0,i1):
             if fscrunch:
                 if frange is None:
                     dat = self.get_integration(i).get_data(spwidx,type).mean(chidx)
@@ -221,7 +229,7 @@ class BDF(object):
             else:
                 result[i] = dat
         if scrunch: 
-            result /= float(self.numIntegration)
+            result /= float(nsubout)
         return result
 
 class BDFSpectralWindow(object):
