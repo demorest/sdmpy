@@ -94,6 +94,30 @@ class Scan(object):
         #        for x in map(bl2ant, range(nbl))]
         return [(ants[x[0]], ants[x[1]]) for x in map(bl2ant, range(nbl))]
 
+    @property
+    def spws(self):
+        """ Return the list of spw names """
+        
+        return [self.sdm['DataDescription'][dd_id].spectralWindowId for dd_id in sdmarray(self._config.dataDescriptionId)]
+
+    @property
+    def reffreqs(self):
+        """ List of reference frequencies. One per spw in spws list. """
+
+        return [self.spw(spwn).refFreq for spwn in range(len(self.spws))]
+
+    @property
+    def numchans(self):
+        """ List of number of channels per spw. One per spw in spws list. """
+
+        return [self.spw(spwn).numChan for spwn in range(len(self.spws))]
+
+    @property
+    def chanwidths(self):
+        """ List of channel widths. One per spw in spws list. """
+
+        return [scan.spw(spwn).chanWidth for spwn in range(len(scan.spws))]
+
     def spw(self,idx):
         """Return the SpectralWindow entry for the given index in this scan."""
         dd_id = sdmarray(self._config.dataDescriptionId)[idx]
