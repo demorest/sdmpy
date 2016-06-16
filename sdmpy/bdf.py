@@ -18,6 +18,11 @@ import math
 import numpy
 from copy import deepcopy
 
+try:
+    from progressbar import ProgressBar
+except ImportError:
+    ProgressBar = None
+
 from .mime import MIMEPart, MIMEHeader
 
 def basename_noext(path):
@@ -194,7 +199,7 @@ class BDF(object):
         return self.get_integration(idx)
 
     def get_data(self,spwidx='all',type='cross',scrunch=False,
-            fscrunch=False,frange=None,trange=None):
+            fscrunch=False,frange=None,trange=None,bar=False):
         """Returns an array containing all integrations for the specified
         baseband, spw and data type.  If scrunch=True, all integrations
         will be averaged."""
@@ -216,7 +221,11 @@ class BDF(object):
         if fscrunch:
             dshape = dshape[:chidx] + dshape[chidx+1:]
         result = numpy.zeros(dshape,dtype=subdat.dtype)
-        for i in range(i0,i1):
+        if bar and ProgressBar is not None:
+            b = ProgressBar()
+        else:
+            b = lambda x: x
+        for i in b(range(i0,i1)):
             if fscrunch:
                 if frange is None:
                     dat = self.get_integration(i).get_data(spwidx,type).mean(chidx)
@@ -227,7 +236,7 @@ class BDF(object):
             if scrunch:
                 result += dat
             else:
-                result[i] = dat
+                result[i-i0] = dat
         if scrunch: 
             result /= float(nsubout)
         return result
