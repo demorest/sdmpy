@@ -227,7 +227,7 @@ class BDF(object):
             if scrunch:
                 result += dat
             else:
-                result[i] = dat
+                result[i-i0] = dat
         if scrunch: 
             result /= float(nsubout)
         return result

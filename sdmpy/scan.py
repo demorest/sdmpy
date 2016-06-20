@@ -116,7 +116,7 @@ class Scan(object):
     def chanwidths(self):
         """ List of channel widths. One per spw in spws list. """
 
-        return [scan.spw(spwn).chanWidth for spwn in range(len(scan.spws))]
+        return [self.spw(spwn).chanWidth for spwn in range(len(self.spws))]
 
     def spw(self,idx):
         """Return the SpectralWindow entry for the given index in this scan."""
