@@ -413,6 +413,25 @@ class BDFIntegration(object):
         dshape = (-1,) + spw.dshape(type)
         return self.data[loc][:,offs:offs+dsize].reshape(dshape)
 
+    def zerofraction(self,spwidx='all',type='cross'):
+        """Returns the fraction of data points in the integration that
+        are exactly zero (generally this means they have been flagged
+        or otherwise not recorded by the online systems).  
+
+        Note that for WIDAR autocorrelation data, the default is to only
+        record half the antennas so will typically have ~50% zeros 
+        according to this function."""
+        if type[0].lower()=='c': 
+            loc = 'crossData'
+        elif type[0].lower()=='a': 
+            loc = 'autoData'
+        if spwidx=='all':
+            dtmp = self.data[loc].ravel()
+        else:
+            dtmp = self.get_data(spwidx=spwidx,type=type).ravel()
+        return float(len(dtmp) - numpy.count_nonzero(dtmp))/float(len(dtmp))
+
+
 class BDFWriter(object):
     """
     Write a BDF file.
