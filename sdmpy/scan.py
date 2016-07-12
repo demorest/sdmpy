@@ -33,8 +33,12 @@ class Scan(object):
         self.idx = scanidx
         self._bdf = None
         bdfdir = sdm.bdfdir if sdm.bdfdir else os.path.join(sdm.path, 'ASDMBinary')
-        self._bdf_fname = os.path.join(bdfdir,
-                                       uid2fname(sdm['Main'][self.idx].dataUID.EntityRef.get('entityId')))
+        try:
+            self._bdf_fname = os.path.join(bdfdir,
+                                           uid2fname(sdm['Main'][self.idx].dataUID.EntityRef.get('entityId')))
+        except AttributeError:
+            self._bdf_fname = os.path.join(bdfdir,
+                                           uid2fname(sdm['Main'][self.idx].dataOid.EntityRef.get('entityId')))
 
     @property
     def bdf(self):
