@@ -198,6 +198,14 @@ class BDF(object):
     def __getitem__(self,idx):
         return self.get_integration(idx)
 
+    def zerofraction(self,spwidx='all',type='cross'):
+        """Return zero fraction for the entire BDF.  This is done by loading
+        each integration's data so may take a while."""
+        tot = 0.0
+        for i in self: 
+            tot += i.zerofraction(spwidx,type)
+        return tot / self.numIntegration
+
     def get_data(self,spwidx='all',type='cross',scrunch=False,
             fscrunch=False,frange=None,trange=None,bar=False):
         """Returns an array containing all integrations for the specified
