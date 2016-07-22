@@ -99,6 +99,14 @@ class Scan(object):
         return [(ants[x[0]], ants[x[1]]) for x in map(bl2ant, range(nbl))]
 
     @property
+    def startMJD(self):
+        return float(self._scan.startTime/86400.0e9)
+
+    @property
+    def endMJD(self):
+        return float(self._scan.endTime/86400.0e9)
+
+    @property
     def spws(self):
         """ Return the list of spw names """
         
