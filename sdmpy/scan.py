@@ -108,19 +108,39 @@ class Scan(object):
     def reffreqs(self):
         """ List of reference frequencies. One per spw in spws list. """
 
-        return [self.spw(spwn).refFreq for spwn in range(len(self.spws))]
+        return [float(self.spw(spwn).refFreq) for spwn in range(len(self.spws))]
 
     @property
     def numchans(self):
         """ List of number of channels per spw. One per spw in spws list. """
 
-        return [self.spw(spwn).numChan for spwn in range(len(self.spws))]
+        return [int(self.spw(spwn).numChan) for spwn in range(len(self.spws))]
 
     @property
     def chanwidths(self):
         """ List of channel widths. One per spw in spws list. """
 
-        return [self.spw(spwn).chanWidth for spwn in range(len(self.spws))]
+        return [float(self.spw(spwn).chanWidth) for spwn in range(len(self.spws))]
+
+    def freqs(self,spwidx='all'):
+        """ Array of per-channel frequences for the given spectral window.
+        If spwidx=='all', a nspw-by-nchan array will be returned giving all
+        frequencies, if all spectral window have the same number of channels.
+        """
+        nspw = len(self.spws)
+        rf = self.reffreqs
+        nc = self.numchans
+        cw = self.chanwidths
+        if spwidx=='all':
+            if nc.count(nc[0]) != len(nc):
+                raise RuntimeError("Variable number of channels")
+            nc = nc[0]
+            out = numpy.zeros((float(nspw), float(nc)))
+            for i in range(nspw):
+                out[i,:] = numpy.arange(nc)*cw[i] + rf[i]
+        else:
+            out = numpy.arange(nc[spwidx]) * cw[spwidx] + rf[spwidx]
+        return out
 
     def spw(self,idx):
         """Return the SpectralWindow entry for the given index in this scan."""
