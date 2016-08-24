@@ -31,11 +31,14 @@ class SDM(object):
         if use_xsd: parser = _sdm_parser
         else: parser = None
         self._tables = {}
+        self._schemaVersion = {}
         self.path = os.path.abspath(path)
         self.bdfdir = bdfdir
         self._asdmtree = objectify.parse(path+'/ASDM.xml',parser)
         self.asdm = self._asdmtree.getroot()
         for tab in self.asdm.Table:
+            self._schemaVersion[tab.Name] = tab.Entity.attrib['schemaVersion']
+            # TODO, compare schema versions, relax parsing if they don't match
             self._tables[tab.Name] = sdmtable(tab.Name,path,use_xsd=use_xsd)
 
     @property
