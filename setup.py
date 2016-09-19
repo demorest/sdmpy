@@ -12,5 +12,8 @@ setup(
     packages = find_packages(),        # get all python scripts in realtime
     install_requires=['lxml', 'numpy'],
     package_data={'sdmpy':['xsd/*.xsd',]},
-    scripts=['scripts/bdf_average.py','scripts/bdf_bin_split.py']
+    scripts=['scripts/bdf_average.py',
+        'scripts/bdf_bin_split.py',
+        'scripts/bdf_dedisperse_cut.py',
+        ]
 )

@@ -18,6 +18,11 @@ import math
 import numpy
 from copy import deepcopy
 
+try:
+    from progressbar import ProgressBar
+except ImportError:
+    ProgressBar = None
+
 from .mime import MIMEPart, MIMEHeader
 
 def basename_noext(path):
@@ -193,8 +198,16 @@ class BDF(object):
     def __getitem__(self,idx):
         return self.get_integration(idx)
 
+    def zerofraction(self,spwidx='all',type='cross'):
+        """Return zero fraction for the entire BDF.  This is done by loading
+        each integration's data so may take a while."""
+        tot = 0.0
+        for i in self: 
+            tot += i.zerofraction(spwidx,type)
+        return tot / self.numIntegration
+
     def get_data(self,spwidx='all',type='cross',scrunch=False,
-            fscrunch=False,frange=None,trange=None):
+            fscrunch=False,frange=None,trange=None,bar=False):
         """Returns an array containing all integrations for the specified
         baseband, spw and data type.  If scrunch=True, all integrations
         will be averaged."""
@@ -216,7 +229,11 @@ class BDF(object):
         if fscrunch:
             dshape = dshape[:chidx] + dshape[chidx+1:]
         result = numpy.zeros(dshape,dtype=subdat.dtype)
-        for i in range(i0,i1):
+        if bar and ProgressBar is not None:
+            b = ProgressBar()
+        else:
+            b = lambda x: x
+        for i in b(range(i0,i1)):
             if fscrunch:
                 if frange is None:
                     dat = self.get_integration(i).get_data(spwidx,type).mean(chidx)
@@ -403,6 +420,25 @@ class BDFIntegration(object):
         dsize = spw.dsize(type)
         dshape = (-1,) + spw.dshape(type)
         return self.data[loc][:,offs:offs+dsize].reshape(dshape)
+
+    def zerofraction(self,spwidx='all',type='cross'):
+        """Returns the fraction of data points in the integration that
+        are exactly zero (generally this means they have been flagged
+        or otherwise not recorded by the online systems).  
+
+        Note that for WIDAR autocorrelation data, the default is to only
+        record half the antennas so will typically have ~50% zeros 
+        according to this function."""
+        if type[0].lower()=='c': 
+            loc = 'crossData'
+        elif type[0].lower()=='a': 
+            loc = 'autoData'
+        if spwidx=='all':
+            dtmp = self.data[loc].ravel()
+        else:
+            dtmp = self.get_data(spwidx=spwidx,type=type).ravel()
+        return float(len(dtmp) - numpy.count_nonzero(dtmp))/float(len(dtmp))
+
 
 class BDFWriter(object):
     """

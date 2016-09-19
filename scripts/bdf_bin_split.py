@@ -16,15 +16,20 @@ sdmname = sys.argv[1]
 
 sdm = sdmpy.SDM(sdmname)
 
-# Get the number of bins
-# TODO clean up spw indexing
+# Get the number of bins, currently assumes it's constant throughout
+# the data set.
 bdf0 = sdm.scan(1).bdf
-nbin = bdf0.spws[bdf0.basebands[0]][0].numBin
+nbin = bdf0.spws[0].numBin
 
+# Sets up the output paths.  Use the "extra" ibin==nbin entry
+# for the averaged data.
 sdmout = []
 bdfoutpath = []
-for ibin in range(nbin):
-    sdmout.append(sdmname + '.bin%04d'%ibin)
+for ibin in range(nbin+1):
+    if ibin==nbin:
+        sdmout.append(sdmname + '.avg')
+    else:
+        sdmout.append(sdmname + '.bin%04d'%ibin)
     bdfoutpath.append(sdmout[ibin] + '/ASDMBinary')
     os.mkdir(sdmout[ibin])
     os.mkdir(bdfoutpath[ibin])
@@ -51,7 +56,7 @@ for scan in sdm.scans():
         fullint = bdf[i]
         dtypes = fullint.data.keys()
         binint = []
-        for ibin in range(nbin):
+        for ibin in range(nbin+1):
             # This is kind of a kludge to create a new BDFInt-like container
             # to hold the data that will be written out.  May want to clean
             # this up at some point.
@@ -64,20 +69,33 @@ for scan in sdm.scans():
             for dtype in dtypes:
                 binint[-1].data[dtype] = None
         for dtype in dtypes:
-            for bb in fullint.basebands:
-                for ispw in range(len(fullint.spws[bb])):
-                    # Axes should be bl/ant, bin, chan, poln
-                    data = fullint.get_data(bb,ispw,type=dtype)
-                    for ibin in range(nbin):
-                        bindata = data.take(ibin,
-                                axis=1).reshape((data.shape[0],-1))
-                        if binint[ibin].data[dtype] is None:
-                            binint[ibin].data[dtype] = bindata.copy()
-                        else:
-                            binint[ibin].data[dtype] = np.hstack(
-                                    (binint[ibin].data[dtype], bindata) 
-                                    )
-        for ibin in range(nbin):
+
+            ## This version handles the general case where different
+            ## spws can potentially have different numbers of channels
+            ## or polarizations, etc.:
+            #for ispw in range(len(fullint.spws)):
+            #    # Axes should be bl/ant, bin, chan, poln
+            #    data = fullint.get_data(ispw,type=dtype)
+            #    for ibin in range(nbin):
+            #        bindata = data.take(ibin,
+            #                axis=1).reshape((data.shape[0],-1))
+            #        if binint[ibin].data[dtype] is None:
+            #            binint[ibin].data[dtype] = bindata.copy()
+            #        else:
+            #            binint[ibin].data[dtype] = np.hstack(
+            #                    (binint[ibin].data[dtype], bindata) 
+            #                    )
+
+            ## This much simpler version handles the case where all spws
+            ## have matching dimensions.  Will raise an error if this 
+            ## is not the case.
+            # Axes should be (bl/ant, spw, bin, chan, pol)
+            data = fullint.get_data(type=dtype)
+            for ibin in range(nbin):
+                binint[ibin].data[dtype] = data.take(ibin,axis=2)
+            binint[nbin].data[dtype] = data.mean(axis=2)
+
+        for ibin in range(nbin+1):
             bdfout[ibin].write_integration(binint[ibin])
                 
     for b in bdfout: b.close()
