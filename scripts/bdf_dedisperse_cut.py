@@ -11,7 +11,7 @@ import sdmpy
 
 par = argparse.ArgumentParser()
 par.add_argument("sdmname", help="SDM to process")
-par.add_argument("-i", "--idx", help="scan:int to store", 
+par.add_argument("-i", "--idx", help="scan:int(:length) to store", 
         action="append", default=[])
 par.add_argument("-e", "--ext", 
         help="extension to add for output [%(default)s]",
@@ -29,9 +29,17 @@ sdm = sdmpy.SDM(sdmname)
 # dict of scan/integrations to keep
 #keep = {'7': 9514,}
 keep = {}
+keeplen = {}
 for i in args.idx:
-    (scan,iidx) = i.split(':')
+    stuff = i.split(':')
+    scan = stuff[0]
+    iidx = stuff[1]
+    try:
+        length = stuff[2]
+    except IndexError:
+        length = 1
     keep[scan] = int(iidx)
+    keeplen[scan] = int(length)
 
 def dm_delay(dm,freq1,freq2=np.inf):
     """Return dispersion delay in seconds from freq2 to freq1 for given
@@ -78,35 +86,40 @@ for scan in sdm.scans():
     uniq_delays_samp = sorted(set(delays_samp.ravel()))
     nint_read = delays_samp.max()+1 # number of integrations to read per event
 
-    nout = 1
-    int0 = keep[scan.idx]
-    bdfint = bdf[int0]
+    nout = keeplen[scan.idx]
+    for offs in range(nout):
 
-    int_time = bdfint.sdmDataSubsetHeader.schedulePeriodTime.time
-    int_interval = bdfint.sdmDataSubsetHeader.schedulePeriodTime.interval
-    t0 = int_time - int_interval/2
-    t1 = int_time + int_interval/2
+        int0 = keep[scan.idx] + offs
+        bdfint = bdf[int0]
 
-    bdfout = sdmpy.bdf.BDFWriter(bdfoutname, bdf=bdf)
-    bdfout.sdmDataHeader.startTime = t0
-    bdfout.write_header()
+        int_time = bdfint.sdmDataSubsetHeader.schedulePeriodTime.time
+        int_interval = bdfint.sdmDataSubsetHeader.schedulePeriodTime.interval
 
-    for dtype in bdfint.data.keys():
-        # Copies the zero-delay data array
-        bdfint.data[dtype] = bdfint.data[dtype].copy()
-        dat0 = bdfint.get_data(type=dtype)
-        # loop over the delays, copy data
-        for ii in uniq_delays_samp:
-            if (int0+ii)>bdf.numIntegration: continue
-            dat = bdf[int(int0+ii)].get_data(type=dtype)
-            fidx = np.where(delays_samp == ii)
-            # May be a more clever numpy-ish way to do this?
-            for jj in range(len(fidx[0])):
-                dat0[:,fidx[0][jj],0,fidx[1][jj],:] = \
-                        dat[:,fidx[0][jj],0,fidx[1][jj],:]
+        if offs==0:
+            t0 = int_time - int_interval/2
+            bdfout = sdmpy.bdf.BDFWriter(bdfoutname, bdf=bdf)
+            bdfout.sdmDataHeader.startTime = t0
+            bdfout.write_header()
 
-    # Write data
-    bdfout.write_integration(bdfint)
+        t1 = int_time + int_interval/2
+
+        for dtype in bdfint.data.keys():
+            # Copies the zero-delay data array
+            bdfint.data[dtype] = bdfint.data[dtype].copy()
+            dat0 = bdfint.get_data(type=dtype)
+            # loop over the delays, copy data
+            for ii in uniq_delays_samp:
+                if (int0+ii)>bdf.numIntegration: continue
+                dat = bdf[int(int0+ii)].get_data(type=dtype)
+                fidx = np.where(delays_samp == ii)
+                # May be a more clever numpy-ish way to do this?
+                for jj in range(len(fidx[0])):
+                    dat0[:,fidx[0][jj],0,fidx[1][jj],:] = \
+                            dat[:,fidx[0][jj],0,fidx[1][jj],:]
+
+        # Write this integration
+        bdfout.write_integration(bdfint)
+
     bdfout.close()
 
     # update SDM entries with corect number of integrations
@@ -116,8 +129,8 @@ for scan in sdm.scans():
     scan._subscan.numSubintegration = ('1 %d' % nout) + ' 0'*nout
 
     # Why must time be stored in four separate places...??
-    scan._main.time = int_time # or t0?
-    scan._main.interval = int_interval
+    scan._main.time = t0 # correct?
+    scan._main.interval = int_interval*nout
     scan._scan.startTime = t0
     scan._scan.endTime = t1
     scan._subscan.startTime = t0
