@@ -50,6 +50,16 @@ for scan in sdm.scans():
         for bb in ibdf.sdmDataHeader.dataStruct.baseband:
             for spw in bb.spectralWindow:
                 spw.attrib['numBin'] = '1'
+        # update size attributes
+        for a in ('flags','actualTimes','actualDurations',
+                'crossData','autoData'):
+            try:
+                ds = ibdf.sdmDataHeader.dataStruct.__dict__[a]
+                if 'BIN' in ds.attrib['axes']:
+                    sz = int(ds.attrib['size'])
+                    ds.attrib['size'] = str(sz/nbin)
+            except KeyError:
+                pass
         ibdf.write_header()
     bar = progressbar.ProgressBar()
     for i in bar(range(bdf.numIntegration)):
