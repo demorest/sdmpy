@@ -89,7 +89,7 @@ Out[6]: ['AC_8BIT', 'BD_8BIT']
 
 In [7]: i = b.get_integration(17)    # Get integration number 17
 
-In [8]: d = i.get_data('AC_8BIT',0)  # Get spw 0 from AC IF
+In [8]: d = i.get_data(0)            # Get spw 0 data
 
 In [9]: d.shape
 Out[9]: (300, 1, 64, 4)
