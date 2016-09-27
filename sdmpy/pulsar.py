@@ -62,14 +62,15 @@ def dedisperse_array(data,dm,freq,period,bin_axis=1,freq_axis=2,spw_axis=None):
         nspw = 1
         dp = dp.reshape((1,-1))
     for ispw in range(nspw):
-        if spw_axis is not None: fslice[spw_axis] = ispw
+        if spw_axis is not None: 
+            fslice[spw_axis] = ispw
+            dtmp0 = data.take([ispw,],axis=spw_axis)
         for ichan in range(nchan):
             fslice[freq_axis] = ichan
             if spw_axis is None:
                 dtmp = data.take(ichan,axis=freq_axis).reshape(fshape)
             else:
-                dtmp = data.take(ispw,axis=spw_axis).take(ichan,
-                        axis=freq_axis).reshape(fshape)
+                dtmp = dtmp0.take([ichan,],axis=freq_axis).reshape(fshape)
             data[fslice] = rotate_phase(dtmp,dp[ispw,ichan],
                     axis=bin_axis).squeeze()
 
