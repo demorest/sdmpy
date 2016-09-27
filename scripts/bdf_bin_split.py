@@ -10,9 +10,19 @@ from collections import namedtuple
 import numpy as np
 np.errstate(divide='ignore')
 import sdmpy
+from sdmpy.pulsar import dedisperse_array
 import progressbar
+import argparse
 
-sdmname = sys.argv[1]
+par = argparse.ArgumentParser()
+par.add_argument("sdmname", help="SDM to process")
+par.add_argument("-d", "--dm", type=float, default=0.0,
+        help="dispersion measure (pc cm^-3) [%(default)s]")
+par.add_argument("-p", "--period", type=float, default=1.0,
+        help="pulse period (s) [%(default)s]")
+args = par.parse_args()
+
+sdmname = args.sdmname
 
 sdm = sdmpy.SDM(sdmname)
 
@@ -41,6 +51,8 @@ for scan in sdm.scans():
     except IOError:
         print "Error reading bdf for scan %s, skipping" % (scan.idx,)
         continue
+    # Array of dims (nspw,nchan) giving freqs in MHz
+    freqs_spw = scan.freqs()/1e6
     bdfoutname = map(lambda x: x+'/'+os.path.basename(scan._bdf_fname), 
             bdfoutpath)
     # Set up for output BDFs, copying header info from the input BDF
@@ -100,7 +112,11 @@ for scan in sdm.scans():
             ## have matching dimensions.  Will raise an error if this 
             ## is not the case.
             # Axes should be (bl/ant, spw, bin, chan, pol)
-            data = fullint.get_data(type=dtype)
+            data = fullint.get_data(type=dtype).copy()
+            # Dedisperse if needed
+            if args.dm!=0.0:
+                dedisperse_array(data, args.dm, freqs_spw, args.period,
+                        bin_axis=2, freq_axis=3, spw_axis=1)
             for ibin in range(nbin):
                 binint[ibin].data[dtype] = data.take(ibin,axis=2)
             binint[nbin].data[dtype] = data.mean(axis=2)
