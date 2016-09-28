@@ -10,18 +10,34 @@ import numpy as np
 from psrchive import MJD
 
 # The big kludge-pile:
-_bin_file = "/lustre/aoc/sciops/pdemores/tests/phase_bins/binning_period.dat"
+#_bin_file = "/lustre/aoc/sciops/pdemores/tests/phase_bins/binning_period.dat"
+_bin_file = "/home/mchost/evla/scripts/opt/2016/09/16B-248/polyco/16B-248.period.log"
 _bin_epochs = None   # list of MJDs
 _bin_periods = None  # list of periods (s)
+_mjd1970 = 40587
+_clk_per_sec = long(64000000)
+_clk_per_day = _clk_per_sec * 86400L
 
 def _get_epoch_period(mjd):
     """Get the closest binning reference epoch and period for a specified
     MJD.  This is kind of a hack until this info is stored properly in the 
     SDM.  Returns a tuple (epoch, period, diff)"""
+    global _bin_epochs, _bin_periods
     if _bin_epochs is None:
+        _bin_epochs = []
+        _bin_periods = []
         for l in open(_bin_file):
-            _bin_epochs += [MJD(l.split()[0]),]
-            _bin_periods += [float(l.split()[1]),]
+            #_bin_epochs += [MJD(l.split()[0]),]
+            #_bin_periods += [float(l.split()[1]),]
+            if l.startswith('epoch '):
+                epoch_clk = long(l.split()[1])
+                mjd_int = epoch_clk/_clk_per_day + _mjd1970
+                mjd_frac = (epoch_clk%_clk_per_day)/float(_clk_per_day)
+            elif l.startswith('target period '):
+                p = float(l.split()[3])/float(_clk_per_sec)
+                _bin_epochs += [MJD(mjd_int,mjd_frac),]
+                _bin_periods += [p,]
+
     # Assumes input is a psrchive MJD.  
     idx = np.argmin([abs((mjd-ep).in_seconds()) for ep in _bin_epochs])
     return (_bin_epochs[idx], _bin_periods[idx], 
