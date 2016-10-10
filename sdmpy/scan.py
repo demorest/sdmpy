@@ -12,12 +12,12 @@ def uid2fname(s):
     """Convert uid URL to file name (mainly for BDFs)."""
     return s.translate(string.maketrans(':/','__'))
 
-def sdmarray(s):
+def sdmarray(s,dtype=None):
     """Convert an array-valued SDM entry (string) into a numpy array."""
     fields = str(s).split()
     ndim = int(fields[0])
     dims = tuple(map(int,fields[1:ndim+1]))
-    return numpy.array(fields[ndim+1:]).reshape(dims)
+    return numpy.array(fields[ndim+1:],dtype=dtype).reshape(dims)
 
 class Scan(object):
     """
@@ -69,6 +69,18 @@ class Scan(object):
     @property
     def source(self):
         return self._scan.sourceName
+
+    @property
+    def coordinates(self):
+        """Return the pointing coordinates (radians as given in Field table)."""
+        # Note as usual there are many redundant choices for where to 
+        # get this info from the SDM.  This is probably fine for standard
+        # VLA observations where each scan points at a single location.
+        # It may not be what is desired for OTF (mapping) type observations.
+        # The SDM also seems to support some kind of polynomial in the Field
+        # table; here we just return the 0th order part of this.
+        return sdmarray(self.sdm['Field'][self._main.fieldId].referenceDir,
+                dtype=numpy.float)[0]
 
     @property
     def intents(self):
