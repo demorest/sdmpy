@@ -22,7 +22,7 @@ par.add_argument("-t", "--time", type=float, default=0.0,
         help="keep all data with integration > time")
 args = par.parse_args()
 
-sdmname = args.sdmname
+sdmname = args.sdmname.rstrip('/')
 
 sdm = sdmpy.SDM(sdmname)
 

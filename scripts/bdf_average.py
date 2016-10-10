@@ -9,7 +9,7 @@ np.errstate(divide='ignore')
 import sdmpy
 import progressbar
 
-sdmname = sys.argv[1]
+sdmname = sys.argv[1].rstrip('/')
 
 sdm = sdmpy.SDM(sdmname)
 

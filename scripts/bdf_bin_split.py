@@ -22,7 +22,7 @@ par.add_argument("-p", "--period", type=float, default=1.0,
         help="pulse period (s) [%(default)s]")
 args = par.parse_args()
 
-sdmname = args.sdmname
+sdmname = args.sdmname.rstrip('/')
 
 sdm = sdmpy.SDM(sdmname)
 
