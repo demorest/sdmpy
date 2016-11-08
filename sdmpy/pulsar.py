@@ -4,6 +4,7 @@
 
 # Routines to support pulsar binned/gated SDM data
 
+import os
 import numpy as np
 
 # TODO maybe reconsider this dependency, although the MJD class is convenient
@@ -42,6 +43,43 @@ def _get_epoch_period(mjd):
     idx = np.argmin([abs((mjd-ep).in_seconds()) for ep in _bin_epochs])
     return (_bin_epochs[idx], _bin_periods[idx], 
             (_bin_epochs[idx]-mjd).in_seconds())
+
+# Kludge-pile version 2:
+class BinLog(object):
+
+    _mjd1970 = 40587
+    _clk_per_sec = long(64000000)
+    _clk_per_day = _clk_per_sec * 86400L
+
+    def __init__(self, sdmname, 
+            logdir='/lustre/aoc/sciops/pdemores/binlogs'):
+        self._logdir = logdir
+        self.sdmname = sdmname
+        # Following arrays contains info from each line of binlog file
+        self.scanidx = []
+        self.epoch = []
+        self.period = []
+        self._read()
+
+    @classmethod
+    def _clk_to_mjd(cls,clk):
+        mjd_int = clk/cls._clk_per_day + cls._mjd1970
+        mjd_frac = (clk%_clk_per_day)/float(_clk_per_day)
+        return MJD(mjd_int, mjd_frac)
+
+    def _read(self):
+        # Actually read the file
+        for l in open(os.path.join(self._logdir,self.sdmname+'.binlog')):
+            (_sdmname, _idx, _epoch_clk, _period_us, _period_clk) = l.split()
+            if _sdmname != self.sdmname: continue
+            self.scanidx.append(_idx)
+            self.epoch.append(self._clk_to_mjd(long(_epoch_clk)))
+            self.period.append(float(_period_clk)/float(self._clk_per_sec))
+
+    def epoch_period(self, mjd):
+        idx = np.argmin([abs((mjd-ep).in_seconds()) for ep in self.epoch])
+        tdiff = (self.epoch[idx] - mjd).in_seconds()
+        return self.epoch[idx], self.period[idx], tdiff
 
 def dm_delay(dm,freq1,freq2=np.inf):
     """Return dispersion delay in seconds from freq2 to freq1 for given

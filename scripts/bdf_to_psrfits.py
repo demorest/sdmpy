@@ -27,6 +27,10 @@ logging.basicConfig(format="%(asctime)-15s %(levelname)8s %(message)s",
 
 sdmname = args.sdmname.rstrip('/')
 sdm = sdmpy.SDM(sdmname)
+try:
+    binlog = sdmpy.pulsar.BinLog(sdmname)
+except IOError:
+    binlog = None
 
 # TODO update to read 4-pol data
 npol = 2
@@ -87,7 +91,10 @@ for scan in sdm.scans():
             mpsr = np.real(dpsr.mean(0))
             subint = arch.get_Integration(iout)
             epoch_bdf = psrchive.MJD(float(bdfsub.time)) # only approx
-            (epoch,p,dt) = sdmpy.pulsar._get_epoch_period(epoch_bdf)
+            if binlog is not None:
+                (epoch,p,dt) = binlog.epoch_period(epoch_bdf)
+            else:
+                (epoch,p,dt) = sdmpy.pulsar._get_epoch_period(epoch_bdf)
 
             logging.info('Using epoch/period from dt=%.3fs' % dt)
 
