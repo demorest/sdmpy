@@ -1,12 +1,30 @@
 sdmpy -- P. Demorest, 2015/03
 
-Simple classes for reading VLA/ALMA Science Data Model (SDM) XML
-files.  The structure of the SDM is a set of tables, which contain
-rows of data.  The main goal of this is to have a straightforward, 
+Simple classes for reading VLA/ALMA Science Data Model (SDM) XML and
+data files.  The structure of the SDM is a set of tables, which contain
+rows of data.  The main goal of this is to have a straightforward,
 relatively dependency-free way of doing simple or low-level stuff with
 SDMs (e.g., for situations where invoking CASA is unnecessary).
 
-Here is a short ipython session showing a example usage:
+Most of the sdmpy functionality is accessed via one of the following
+three classes:
+
+  1. SDM class -- for reading or editing SDM XML tables.
+
+  2. BDF class -- for reading data from Binary Data Format (BDF) files.
+     This code can be used directly on standalone BDF files, there is no
+     need for a full SDM to be available.
+
+  3. Scan class -- provides higher-level access to a full SDM+BDF data
+     set, including most commonly needed metadata (times, frequencies,
+     source names, antenna names, etc.)
+
+There are also a handful of command-line programs making use of sdmpy in
+the scripts/ directory.  Most can be run with '-h' option for usage
+information.
+
+---------------------------------------------------------------------
+Example ipython session illustrating use of the SDM class:
 
 In [1]: import sdmpy
 
@@ -66,10 +84,11 @@ In [7]: len(s['Main'])
 Out[7]: 24
 
 
-sdmpy also contains a parser for BDF (Binary Data Format) files, which contain
-the actual visibility data.  Note that this has been developed mainly for
-VLA/WIDAR data and is likely not complete for use with ALMA data.  Example
-usage (see docstrings for more info):
+---------------------------------------------------------------------
+ipython session showing use of the BDF class to access visibility data.
+Note that this has been developed mainly for VLA/WIDAR data and is
+likely not complete for use with ALMA data.  Example usage (see
+docstrings for more info):
 
 In [1]: import sdmpy
 
@@ -128,4 +147,48 @@ array([ -1.92527496e-03+0.00236825j,  -1.01333787e-03-0.0019273j ,
          1.09594746e-03+0.00397917j,  -2.94885552e-03-0.00085458j,
          7.17548071e-04-0.00044755j,  -2.99423118e-05-0.00164009j,
          1.18584884e-03+0.00028139j,  -5.73034631e-04+0.00078536j], dtype=complex64)
+
+
+---------------------------------------------------------------------
+ipython session showing use of the Scan class:
+
+In [1]: import sdmpy
+
+In [2]: sdm = sdmpy.SDM('16B-248_TEST_L.57686.804786203706')
+
+In [3]: for scan in sdm.scans(): print scan.idx,scan.source,scan.intents
+1 1331+305=3C286 ['SYSTEM_CONFIGURATION']
+2 1331+305=3C286 ['CALIBRATE_DELAY', 'CALIBRATE_FLUX',
+'CALIBRATE_POL_ANGLE', 'CALIBRATE_BANDPASS']
+3 J1626-2951 ['CALIBRATE_AMPLI', 'CALIBRATE_PHASE']
+4 J1600-3053 ['OBSERVE_TARGET']
+5 J1626-2951 ['CALIBRATE_AMPLI', 'CALIBRATE_PHASE']
+6 J1600-3053 ['OBSERVE_TARGET']
+7 J1626-2951 ['CALIBRATE_AMPLI', 'CALIBRATE_PHASE']
+
+In [4]: s = sdm.scan(3)
+
+In [5]: s.freqs()
+Out[5]:
+array([[  9.88000000e+08,   9.89000000e+08,   9.90000000e+08, ...,
+          1.11300000e+09,   1.11400000e+09,   1.11500000e+09],
+       [  1.11600000e+09,   1.11700000e+09,   1.11800000e+09, ...,
+          1.24100000e+09,   1.24200000e+09,   1.24300000e+09],
+       [  1.24400000e+09,   1.24500000e+09,   1.24600000e+09, ...,
+          1.36900000e+09,   1.37000000e+09,   1.37100000e+09],
+       ...,
+       [  1.62800000e+09,   1.62900000e+09,   1.63000000e+09, ...,
+          1.75300000e+09,   1.75400000e+09,   1.75500000e+09],
+       [  1.75600000e+09,   1.75700000e+09,   1.75800000e+09, ...,
+          1.88100000e+09,   1.88200000e+09,   1.88300000e+09],
+       [  1.88400000e+09,   1.88500000e+09,   1.88600000e+09, ...,
+          2.00900000e+09,   2.01000000e+09,   2.01100000e+09]])
+
+In [6]: s.startMJD
+Out[6]: 57686.808208912036
+
+In [7]: b = s.bdf        # Get BDF object for this scan
+
+In [8]: d = b.get_data() # Read full visibility data array for the scan
+
 
