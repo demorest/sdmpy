@@ -29,6 +29,11 @@ class MIMEHeader(OrderedDict):
         Given a single line from a mime header, split it into key/val and
         add it to the dict.
         """
+        # If the line begins with whitespace, assume it is a continuation of
+        # the previous line, and append it to the last value read.  I'm not
+        # sure how legit this is but all examples of multi-line headers
+        # I've seen seem to follow this pattern..
+        #TODO
         idx = line.index(':')
         key = line[:idx]
         vals = map(string.strip, line[idx+1:].split(';'))
@@ -178,7 +183,8 @@ class MIMEPart(object):
                         multipart_type = True
                         boundary = self.hdr.boundary
                         self.body = []
-                    elif vals[0] == 'application/octet-stream':
+                    elif (vals[0] == 'application/octet-stream' or
+                            vals[0] == 'binary/octet-stream'):
                         binary_type = True
             else:
                 if not binary_type:
