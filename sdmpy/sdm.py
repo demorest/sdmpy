@@ -202,6 +202,34 @@ class SDMBinaryTable(object):
     read the data and write it back out when asked to do so by the main
     SDM class.
     """
+    # Notes: 
+    #
+    # Binary tables use MIME multipart format.  Should only have
+    # two parts.  First has content-id "<header.xml>" and is an XML
+    # description of the table (column names only).  Second has content-id
+    # "<content.bin>" and is the table in binary format.
+    # 
+    # All binary numbers are big endian.
+    #
+    # In the binary table, strings are encoded as an int giving string length
+    # followed by the string data.  Same with vectors of floats, etc.
+    #
+    # Entities are sets of 5 strings: entityId, entityIdEncrypted, 
+    # entityTypeName, schemaVersion, documentVersion
+    #
+    # The binary table has the following contents:
+    #  - table entity
+    #  - container entity
+    #  - number of rows (int)
+    #  - N_row times row data
+    #
+    # Optional entries within a row are preceded by a 1-byte boolean
+    # that is 1 if the entry exists, 0 if not.
+    #
+    # I have not yet found a way of automatically determining what 
+    # types of data are contained within the row.  This may not be 
+    # actually be possible!
+    #
     def __init__(self,name,path,use_xsd=None):
         self.name = name
         self._data = open(path+'/'+name+'.bin','r').read()
