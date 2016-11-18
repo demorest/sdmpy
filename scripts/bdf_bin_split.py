@@ -20,6 +20,8 @@ par.add_argument("-d", "--dm", type=float, default=0.0,
         help="dispersion measure (pc cm^-3) [%(default)s]")
 par.add_argument("-p", "--period", type=float, default=1.0,
         help="pulse period (s) [%(default)s]")
+par.add_argument("-m", "--meansub", action="store_true",
+        help="subtract period-averaged value from each bin")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
@@ -117,9 +119,11 @@ for scan in sdm.scans():
             if args.dm!=0.0:
                 dedisperse_array(data, args.dm, freqs_spw, args.period,
                         bin_axis=2, freq_axis=3, spw_axis=1)
+            binint[nbin].data[dtype] = data.mean(axis=2)
             for ibin in range(nbin):
                 binint[ibin].data[dtype] = data.take(ibin,axis=2)
-            binint[nbin].data[dtype] = data.mean(axis=2)
+                if args.meansub:
+                    binint[ibin].data[dtype] -= binint[nbin].data[dtype]
 
         for ibin in range(nbin+1):
             bdfout[ibin].write_integration(binint[ibin])
