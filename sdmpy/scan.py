@@ -168,17 +168,20 @@ class Scan(object):
         spw_id = self.sdm['DataDescription'][dd_id].spectralWindowId
         return self.sdm['SpectralWindow'][spw_id]
 
-    def flags(self,mjd,axis='bl',pad=False,flagval=0):
+    def flags(self,mjd,axis='bl',pad=False,flagval=0,expand=1.0):
         """Return flag array for the given time(s).  Input mjd can be scalar
         or array valued.  If axis=='ant', returned array will have dimensions
         (N_times, N_antenna), otherwise (N_times, N_baselines).  Flag array
         contains 1 for non-flagged points and flagval for flagged data.  If pad
         arg is true, four extra len-1 dimensions will be appended so that
-        flags can be applied to standard bdf.get_data() results."""
+        flags can be applied to standard bdf.get_data() results.  All
+        flag start/stop times are increased by the value of the expand
+        argument (seconds)."""
         sdm_ants = self.antennas
         nant = len(sdm_ants)
         nbl = nant*(nant-1)/2
         t_ns = numpy.array(numpy.array(mjd)*86400.0e9,dtype=numpy.int64)
+        exp_ns = int(expand*1e9)
         d_out = t_ns.shape
         isscalar = (d_out==())
         if axis=='ant':
@@ -189,8 +192,8 @@ class Scan(object):
             d_out += (1,1,1,1)
         out = numpy.ones(d_out,dtype=type(flagval))
         for flag in self.sdm['Flag']:
-            tidx = numpy.where((t_ns>int(flag.startTime)) 
-                    * (t_ns<int(flag.endTime)))[0]
+            tidx = numpy.where( (t_ns>(int(flag.startTime)-exp_ns)) 
+                    * (t_ns<(int(flag.endTime)+exp_ns)))[0]
             if len(tidx)==0: continue
             for a in sdmarray(flag.antennaId):
                 flagant = self.sdm['Antenna'][a].name
