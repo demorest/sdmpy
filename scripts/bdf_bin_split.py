@@ -22,6 +22,10 @@ par.add_argument("-p", "--period", type=float, default=1.0,
         help="pulse period (s) [%(default)s]")
 par.add_argument("-m", "--meansub", action="store_true",
         help="subtract period-averaged value from each bin")
+par.add_argument("-s", "--scan", action="append", default=[],
+        help="process this scan (multiple -s allowed)")
+par.add_argument("-C", "--cal", action="store_true",
+        help="produce sum/diff outputs (cal mode)")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
@@ -30,28 +34,43 @@ sdm = sdmpy.SDM(sdmname)
 
 # Get the number of bins, currently assumes it's constant throughout
 # the data set.
-bdf0 = sdm.scan(1).bdf
+try:
+    bdf0 = sdm.scan(args.scan[0]).bdf
+except IndexError:
+    bdf0 = sdm.scan(1).bdf
 nbin = bdf0.spws[0].numBin
 
 # Sets up the output paths.  Use the "extra" ibin==nbin entry
 # for the averaged data.
 sdmout = []
 bdfoutpath = []
-for ibin in range(nbin+1):
-    if ibin==nbin:
-        sdmout.append(sdmname + '.avg')
-    else:
-        sdmout.append(sdmname + '.bin%04d'%ibin)
+if args.cal:
+    sdmout.append(sdmname + '.sum')
+    sdmout.append(sdmname + '.dif')
+    nbin = 2
+else:
+    for ibin in range(nbin+1):
+        if ibin==nbin:
+            sdmout.append(sdmname + '.avg')
+        else:
+            sdmout.append(sdmname + '.bin%04d'%ibin)
+
+for ibin in range(len(sdmout)):
     bdfoutpath.append(sdmout[ibin] + '/ASDMBinary')
     os.mkdir(sdmout[ibin])
     os.mkdir(bdfoutpath[ibin])
 
 for scan in sdm.scans():
+    if len(args.scan) and scan.idx not in args.scan:
+        continue
     print "Processing '%s' scan %s:" % (sdmname, scan.idx)
     try:
         bdf = scan.bdf
     except IOError:
         print "Error reading bdf for scan %s, skipping" % (scan.idx,)
+        continue
+    if args.cal and bdf.spws[0].numBin != 2:
+        print "nbin!=2 for scan %s, skipping" % (scan.idx,)
         continue
     # Array of dims (nspw,nchan) giving freqs in MHz
     freqs_spw = scan.freqs()/1e6
@@ -80,7 +99,7 @@ for scan in sdm.scans():
         fullint = bdf[i]
         dtypes = fullint.data.keys()
         binint = []
-        for ibin in range(nbin+1):
+        for ibin in range(len(bdfout)):
             # This is kind of a kludge to create a new BDFInt-like container
             # to hold the data that will be written out.  May want to clean
             # this up at some point.
@@ -119,13 +138,22 @@ for scan in sdm.scans():
             if args.dm!=0.0:
                 dedisperse_array(data, args.dm, freqs_spw, args.period,
                         bin_axis=2, freq_axis=3, spw_axis=1)
-            binint[nbin].data[dtype] = data.mean(axis=2)
-            for ibin in range(nbin):
-                binint[ibin].data[dtype] = data.take(ibin,axis=2)
-                if args.meansub:
-                    binint[ibin].data[dtype] -= binint[nbin].data[dtype]
+            if args.cal:
+                # If either one of the bins is zeroed, zero both in
+                # output.
+                b0 = data.take(0,axis=2)
+                b1 = data.take(1,axis=2)
+                wt = (b0!=0.0) * (b1!=0.0)
+                binint[0].data[dtype] = (wt*(b1+b0))*0.5
+                binint[1].data[dtype] = wt*(b1-b0)
+            else:
+                binint[nbin].data[dtype] = data.mean(axis=2)
+                for ibin in range(nbin):
+                    binint[ibin].data[dtype] = data.take(ibin,axis=2)
+                    if args.meansub:
+                        binint[ibin].data[dtype] -= binint[nbin].data[dtype]
 
-        for ibin in range(nbin+1):
+        for ibin in range(len(bdfout)):
             bdfout[ibin].write_integration(binint[ibin])
                 
     for b in bdfout: b.close()
