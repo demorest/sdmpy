@@ -9,13 +9,24 @@ np.errstate(divide='ignore')
 import sdmpy
 import progressbar
 
-sdmname = sys.argv[1].rstrip('/')
+import argparse
+par = argparse.ArgumentParser()
+par.add_argument("sdmname", help="SDM to process")
+par.add_argument("-t", "--time", type=float, default=3.0,
+        help="averaging time (s) [%(default)s]")
+par.add_argument("-e", "--ext", default="avg",
+        help="extension to add to output SDM [%(default)s]")
+par.add_argument("-b", "--bdfdir", default="",
+        help="path to BDFs (optional)")
+args = par.parse_args()
 
-sdm = sdmpy.SDM(sdmname)
+sdmname = args.sdmname.rstrip('/')
 
-tavg = 3.0 # in seconds
+sdm = sdmpy.SDM(sdmname,bdfdir=args.bdfdir)
 
-sdmout = sdmname + '.avg'
+tavg = args.time # in seconds
+
+sdmout = sdmname + '.' + args.ext
 bdfoutpath = sdmout + '/ASDMBinary'
 
 os.mkdir(sdmout)
