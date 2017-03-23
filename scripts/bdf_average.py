@@ -42,7 +42,7 @@ for scan in sdm.scans():
     # TODO maybe rename BDFs...
     # Also this assumes averaging time is the same during the whole
     # BDF.  This is always true for VLA data.
-    bdfoutname = bdfoutpath + '/' + os.path.basename(scan._bdf_fname)
+    bdfoutname = bdfoutpath + '/' + os.path.basename(scan.bdf_fname)
     navg = int(tavg / bdf[0].interval)
     nout = int(bdf.numIntegration / navg)
     delta_t = int((navg/2.0)*bdf[0].interval*1e9) # ns

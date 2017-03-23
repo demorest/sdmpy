@@ -62,12 +62,12 @@ for scan in sdm.scans():
         print "Error reading bdf for scan %s, skipping" % (scan.idx,)
         continue
 
-    bdfoutname = bdfoutpath + '/' + os.path.basename(scan._bdf_fname)
+    bdfoutname = bdfoutpath + '/' + os.path.basename(scan.bdf_fname)
 
     # Check either intent or int time, copy full scan if matching
     if (args.time>0 and bdf[0].interval>args.time):
         print "  copying scan %s" % (scan.idx,)
-        shutil.copy(scan._bdf_fname, bdfoutname)
+        shutil.copy(scan.bdf_fname, bdfoutname)
         continue
 
     if scan.idx not in keep.keys():

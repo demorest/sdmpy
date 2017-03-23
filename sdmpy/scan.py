@@ -32,18 +32,11 @@ class Scan(object):
         self.sdm = sdm
         self.idx = scanidx
         self._bdf = None
-        bdfdir = sdm.bdfdir if sdm.bdfdir else os.path.join(sdm.path, 'ASDMBinary')
-        try:
-            self._bdf_fname = os.path.join(bdfdir,
-                                           uid2fname(sdm['Main'][self.idx].dataUID.EntityRef.get('entityId')))
-        except AttributeError:
-            self._bdf_fname = os.path.join(bdfdir,
-                                           uid2fname(sdm['Main'][self.idx].dataOid.EntityRef.get('entityId')))
 
     @property
     def bdf(self):
         if self._bdf is None:
-            self._bdf = BDF(self._bdf_fname)
+            self._bdf = BDF(self.bdf_fname)
         return self._bdf
 
     @property
@@ -65,6 +58,21 @@ class Scan(object):
     def _config(self):
         """Convenience interfact to the SDM ConfigDescription row."""
         return self.sdm['ConfigDescription'][self._main.configDescriptionId]
+
+    @property
+    def bdfdir(self):
+        return self.sdm.bdfdir if self.sdm.bdfdir \
+            else os.path.join(self.sdm.path, 'ASDMBinary')
+
+    @property
+    def bdf_fname(self):
+        try:
+            bdf_fname = os.path.join(self.bdfdir, 
+                    uid2fname(self._main.dataUID.EntityRef.get('entityId')))
+        except AttributeError:
+            bdf_fname = os.path.join(self.bdfdir, 
+                    uid2fname(self._main.dataOid.EntityRef.get('entityId')))
+        return bdf_fname
 
     @property
     def source(self):

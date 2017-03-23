@@ -26,6 +26,8 @@ par.add_argument("-s", "--scan", action="append", default=[],
         help="process this scan (multiple -s allowed)")
 par.add_argument("-C", "--cal", action="store_true",
         help="produce sum/diff outputs (cal mode)")
+par.add_argument("-A", "--fixautos", action="store_true",
+        help="attempt to fix sign of autocorr poln products")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
@@ -74,7 +76,7 @@ for scan in sdm.scans():
         continue
     # Array of dims (nspw,nchan) giving freqs in MHz
     freqs_spw = scan.freqs()/1e6
-    bdfoutname = map(lambda x: x+'/'+os.path.basename(scan._bdf_fname), 
+    bdfoutname = map(lambda x: x+'/'+os.path.basename(scan.bdf_fname), 
             bdfoutpath)
     # Set up for output BDFs, copying header info from the input BDF
     # and changing nbin to 1.
@@ -134,10 +136,20 @@ for scan in sdm.scans():
             ## is not the case.
             # Axes should be (bl/ant, spw, bin, chan, pol)
             data = fullint.get_data(type=dtype).copy()
+
             # Dedisperse if needed
             if args.dm!=0.0:
                 dedisperse_array(data, args.dm, freqs_spw, args.period,
                         bin_axis=2, freq_axis=3, spw_axis=1)
+
+            # Flip sign of autocorr cross-pol imag component in 
+            # every other spw.  Note I don't think there is a 
+            # general way to know which spws need fixing..
+            if args.fixautos:
+                if ('auto' in dtype) and (data.shape[-1]==4):
+                    for ispw in range(1,data.shape[1],2):
+                        data[:,ispw,:,:,2] *= -1.0
+
             if args.cal:
                 # If either one of the bins is zeroed, zero both in
                 # output.
