@@ -20,6 +20,8 @@ par.add_argument("-q", "--quiet", dest='loglevel',
         help='No INFO messages')
 par.add_argument("-d", "--dm", type=float, default=0.0,
         help="dispersion measure (pc cm^-3) [%(default)s]")
+par.add_argument("-p", "--period", type=float, default=0.0,
+        help="period data were folded (s) [auto]")
 args = par.parse_args()
 
 logging.basicConfig(format="%(asctime)-15s %(levelname)8s %(message)s", 
@@ -91,12 +93,19 @@ for scan in sdm.scans():
             mpsr = np.real(dpsr.mean(0))
             subint = arch.get_Integration(iout)
             epoch_bdf = psrchive.MJD(float(bdfsub.time)) # only approx
-            if binlog is not None:
-                (epoch,p,dt) = binlog.epoch_period(epoch_bdf)
+            if args.period>0.0:
+                #epoch = psrchive.MJD(epoch_bdf.intday())
+                epoch = epoch_bdf
+                p = args.period
+                dt = 0.0
+                logging.info('Using constant period')
             else:
-                (epoch,p,dt) = sdmpy.pulsar._get_epoch_period(epoch_bdf)
+                if binlog is not None:
+                    (epoch,p,dt) = binlog.epoch_period(epoch_bdf)
+                else:
+                    (epoch,p,dt) = sdmpy.pulsar._get_epoch_period(epoch_bdf)
+                logging.info('Using epoch/period from dt=%.3fs' % dt)
 
-            logging.info('Using epoch/period from dt=%.3fs' % dt)
 
             # These were used for testing dedispersion:
             #sdmpy.pulsar._dedisperse_array(mpsr, args.dm, freqs, p,
