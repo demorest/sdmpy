@@ -6,6 +6,7 @@ import os.path
 from lxml import etree, objectify
 
 from .scan import Scan
+from .mime import MIMEPart, MIMEHeader
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 _xsd_dir = os.path.join(_install_dir, 'xsd')
@@ -232,7 +233,15 @@ class SDMBinaryTable(object):
     #
     def __init__(self,name,path,use_xsd=None):
         self.name = name
-        self._data = open(path+'/'+name+'.bin','r').read()
+        fp = open(path+'/'+name+'.bin','r')
+        self._data = fp.read()
+        fp.seek(0)
+        mimetmp = MIMEPart(fp,recurse=True)
+        ## Assume part 0 is header; TODO do more checks
+        self.header = objectify.fromstring(mimetmp.body[0].body)
+        self._doffs = mimetmp.body[1].body
+        self._dsize = mimetmp.body[1].size
+        fp.close()
 
     def write(self,newpath,fname=None):
         if fname is None:
@@ -241,4 +250,6 @@ class SDMBinaryTable(object):
             outf = os.path.join(newpath,fname)
         open(outf,'w').write(self._data)
 
+    def get_bytes(self,offs,nbytes):
+        return self._data[self._doffs+offs:self._doffs+offs+nbytes]
 
