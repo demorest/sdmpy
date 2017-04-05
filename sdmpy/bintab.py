@@ -140,7 +140,7 @@ class BinaryTableUnpacker(object):
                         )
             self.row[irow] = row
             irow += 1
-        self.row = numpy.rec.array(numpy.resize(self.row,len(self.row)))
+        self.row = numpy.rec.array(numpy.resize(self.row,irow))
 
 class SysPowerUnpacker(BinaryTableUnpacker):
     """Unpacker for the SysPower binary table.  Currently makes some
