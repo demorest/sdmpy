@@ -15,5 +15,6 @@ setup(
     scripts=['scripts/bdf_average.py',
         'scripts/bdf_bin_split.py',
         'scripts/bdf_dedisperse_cut.py',
+        'scripts/bdf_to_psrfits.py',
         ]
 )

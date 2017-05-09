@@ -9,13 +9,24 @@ np.errstate(divide='ignore')
 import sdmpy
 import progressbar
 
-sdmname = sys.argv[1]
+import argparse
+par = argparse.ArgumentParser()
+par.add_argument("sdmname", help="SDM to process")
+par.add_argument("-t", "--time", type=float, default=3.0,
+        help="averaging time (s) [%(default)s]")
+par.add_argument("-e", "--ext", default="avg",
+        help="extension to add to output SDM [%(default)s]")
+par.add_argument("-b", "--bdfdir", default="",
+        help="path to BDFs (optional)")
+args = par.parse_args()
 
-sdm = sdmpy.SDM(sdmname)
+sdmname = args.sdmname.rstrip('/')
 
-tavg = 3.0 # in seconds
+sdm = sdmpy.SDM(sdmname,bdfdir=args.bdfdir)
 
-sdmout = sdmname + '.avg'
+tavg = args.time # in seconds
+
+sdmout = sdmname + '.' + args.ext
 bdfoutpath = sdmout + '/ASDMBinary'
 
 os.mkdir(sdmout)
@@ -31,7 +42,7 @@ for scan in sdm.scans():
     # TODO maybe rename BDFs...
     # Also this assumes averaging time is the same during the whole
     # BDF.  This is always true for VLA data.
-    bdfoutname = bdfoutpath + '/' + os.path.basename(scan._bdf_fname)
+    bdfoutname = bdfoutpath + '/' + os.path.basename(scan.bdf_fname)
     navg = int(tavg / bdf[0].interval)
     nout = int(bdf.numIntegration / navg)
     delta_t = int((navg/2.0)*bdf[0].interval*1e9) # ns

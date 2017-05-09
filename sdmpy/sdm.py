@@ -6,6 +6,7 @@ import os.path
 from lxml import etree, objectify
 
 from .scan import Scan
+from .mime import MIMEPart, MIMEHeader
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 _xsd_dir = os.path.join(_install_dir, 'xsd')
@@ -202,9 +203,45 @@ class SDMBinaryTable(object):
     read the data and write it back out when asked to do so by the main
     SDM class.
     """
+    # Notes: 
+    #
+    # Binary tables use MIME multipart format.  Should only have
+    # two parts.  First has content-id "<header.xml>" and is an XML
+    # description of the table (column names only).  Second has content-id
+    # "<content.bin>" and is the table in binary format.
+    # 
+    # All binary numbers are big endian.
+    #
+    # In the binary table, strings are encoded as an int giving string length
+    # followed by the string data.  Same with vectors of floats, etc.
+    #
+    # Entities are sets of 5 strings: entityId, entityIdEncrypted, 
+    # entityTypeName, schemaVersion, documentVersion
+    #
+    # The binary table has the following contents:
+    #  - table entity
+    #  - container entity
+    #  - number of rows (int)
+    #  - N_row times row data
+    #
+    # Optional entries within a row are preceded by a 1-byte boolean
+    # that is 1 if the entry exists, 0 if not.
+    #
+    # I have not yet found a way of automatically determining what 
+    # types of data are contained within the row.  This may not be 
+    # actually be possible!
+    #
     def __init__(self,name,path,use_xsd=None):
         self.name = name
-        self._data = open(path+'/'+name+'.bin','r').read()
+        fp = open(path+'/'+name+'.bin','r')
+        self._data = fp.read()
+        fp.seek(0)
+        mimetmp = MIMEPart(fp,recurse=True)
+        ## Assume part 0 is header; TODO do more checks
+        self.header = objectify.fromstring(mimetmp.body[0].body)
+        self._doffs = mimetmp.body[1].body
+        self._dsize = mimetmp.body[1].size
+        fp.close()
 
     def write(self,newpath,fname=None):
         if fname is None:
@@ -213,4 +250,6 @@ class SDMBinaryTable(object):
             outf = os.path.join(newpath,fname)
         open(outf,'w').write(self._data)
 
+    def get_bytes(self,offs,nbytes):
+        return self._data[self._doffs+offs:self._doffs+offs+nbytes]
 

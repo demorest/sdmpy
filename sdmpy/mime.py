@@ -29,10 +29,22 @@ class MIMEHeader(OrderedDict):
         Given a single line from a mime header, split it into key/val and
         add it to the dict.
         """
-        idx = line.index(':')
-        key = line[:idx]
-        vals = map(string.strip, line[idx+1:].split(';'))
-        self[key] = vals
+        # If the line begins with whitespace, assume it is a continuation of
+        # the previous line, and append it to the last value read.  I'm not
+        # sure how legit this is but all examples of multi-line headers
+        # I've seen seem to follow this pattern.  It is possible that 
+        # the previous line ending with ; is a more reliable indicator.
+        if line.startswith('\t'):
+            # Since we are using OrderedDict, can get the most recently
+            # added key.
+            key = self.keys()[-1]
+            vals = map(string.strip, line[1:].split(';'))
+            self[key].extend(vals)
+        else:
+            idx = line.index(':')
+            key = line[:idx]
+            vals = map(string.strip, line[idx+1:].split(';'))
+            self[key] = vals
 
     @staticmethod
     def _asline(key,val):
@@ -111,7 +123,7 @@ class MIMEPart(object):
         # with this approach.
         while True:
 
-            line = fp.readline()
+            line = fp.readline().replace('\r','')
 
             # hit EOF
             if line=='':
@@ -142,20 +154,46 @@ class MIMEPart(object):
                 in_hdr = False
                 if binary_type:
                     # Note the location within the file and skip
-                    # ahead by the correct amount.
-                    bin_name = basename_noext(self.hdr['Content-Location'][0])
+                    # ahead by the correct amount.  For BDF files, 
+                    # use Content-Location to get type of binary part.
+                    try:
+                        bin_name = basename_noext(
+                                self.hdr['Content-Location'][0])
+                    except KeyError:
+                        bin_name = None
                     self.body = fp.tell()
-                    # NOTE if the list of binary sizes is not given, or
-                    # if the bin_name is unknown, we should read the data
-                    # until the boundary marker is found to determine the 
-                    # size.  THIS NEEDS TO BE IMPLEMENTED SOMETIME.  For
-                    # now this case will raise an error.
+                    # If the list of binary sizes is not given, or
+                    # if the bin_name is unknown, we read the data
+                    # until the boundary marker is found to determine
+                    # the size.
                     if ((binary_size is None) 
                             or (bin_name not in binary_size.keys())):
-                        raise RuntimeError("Unknown binary type '%s' found"
-                                % bin_name)
-                    # Need to add one extra byte for the newline
-                    fp.seek(binary_size[bin_name]+1, 1)
+                        #raise RuntimeError("Unknown binary type '%s' found"
+                        #        % bin_name)
+                        bl = len(boundary)+2 # length of boundary string
+                        bs = 1024*1024       # block size for scanning
+                        gotit = False
+                        while not gotit:
+                            junk = fp.read(bs)
+                            bloc = junk.find('--'+boundary)
+                            br = len(junk)
+                            eof = (br < bs)
+                            if bloc<0:
+                                if eof:
+                                    raise RuntimeError(
+                                            "Missing boundary string '%s'" 
+                                            % boundary)
+                                else:
+                                    fp.seek(-bl,1)
+                            else:
+                                gotit = True
+                                fp.seek(-br + bloc, 1)
+                    else:
+                        # Seek ahead to the correct place.
+                        # Need to add one extra byte for the newline.
+                        fp.seek(binary_size[bin_name]+1, 1)
+                    # Note size of the binary part
+                    self.size = fp.tell() - self.body
                 elif multipart_type:
                     if recurse:
                         # Parse the parts and add to a list
@@ -178,7 +216,8 @@ class MIMEPart(object):
                         multipart_type = True
                         boundary = self.hdr.boundary
                         self.body = []
-                    elif vals[0] == 'application/octet-stream':
+                    elif (vals[0] == 'application/octet-stream' or
+                            vals[0] == 'binary/octet-stream'):
                         binary_type = True
             else:
                 if not binary_type:
