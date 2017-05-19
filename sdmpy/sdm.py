@@ -85,6 +85,12 @@ class SDM(object):
         # Call each table's write method for the rest
         for tab in self.tables: self[tab].write(newpath)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
 def sdmtable(name,path,*args,**kwargs):
     """
     Return the correct type of SDM table object (binary or XML).
