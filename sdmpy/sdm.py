@@ -236,11 +236,16 @@ class SDMBinaryTable(object):
         fp = open(path+'/'+name+'.bin','r')
         self._data = fp.read()
         fp.seek(0)
-        mimetmp = MIMEPart(fp,recurse=True)
-        ## Assume part 0 is header; TODO do more checks
-        self.header = objectify.fromstring(mimetmp.body[0].body)
-        self._doffs = mimetmp.body[1].body
-        self._dsize = mimetmp.body[1].size
+        try:
+            mimetmp = MIMEPart(fp,recurse=True)
+            ## Assume part 0 is header; TODO do more checks
+            self.header = objectify.fromstring(mimetmp.body[0].body)
+            self._doffs = mimetmp.body[1].body
+            self._dsize = mimetmp.body[1].size
+        except RuntimeError:
+            # Don't die on a truncated file.  
+            # Probably some better way to handle this..
+            pass
         fp.close()
 
     def write(self,newpath,fname=None):
