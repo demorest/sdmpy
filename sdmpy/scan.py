@@ -172,7 +172,7 @@ class Scan(object):
             if nc.count(nc[0]) != len(nc):
                 raise RuntimeError("Variable number of channels")
             nc = nc[0]
-            out = numpy.zeros((float(nspw), float(nc)))
+            out = numpy.zeros((nspw,nc))
             for i in range(nspw):
                 out[i,:] = numpy.arange(nc)*cw[i] + rf[i]
         else:
