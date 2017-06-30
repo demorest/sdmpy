@@ -75,6 +75,7 @@ class BDF(object):
             self.fp = open(fname, 'r')
         except IOError:
             self.fp = None
+            logger.warn('No BDF file found at {0}'.format(fname))
         else:
             self.mmdata = mmap.mmap(self.fp.fileno(), 0, mmap.MAP_PRIVATE,
                                     mmap.PROT_READ)
