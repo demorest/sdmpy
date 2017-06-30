@@ -7,7 +7,8 @@
 # originally by Peter Williams.  So far this is somewhat targeted
 # to EVLA/WIDAR data files, it may not handle all the ALMA variants.
 
-from lxml import etree, objectify
+import logging
+logger = logging.getLogger(__name__)
 
 import os
 import sys
@@ -17,6 +18,7 @@ import mmap
 import math
 import numpy
 from copy import deepcopy
+from lxml import etree, objectify
 
 try:
     from progressbar import ProgressBar
@@ -73,6 +75,7 @@ class BDF(object):
             self.fp = open(fname, 'r')
         except IOError:
             self.fp = None
+            logger.warn('No BDF file found at {0}'.format(fname))
         else:
             self.mmdata = mmap.mmap(self.fp.fileno(), 0, mmap.MAP_PRIVATE,
                                     mmap.PROT_READ)
