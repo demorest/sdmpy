@@ -75,7 +75,6 @@ class BDF(object):
             self.fp = open(fname, 'r')
         except IOError:
             self.fp = None
-            logger.warn('No BDF file found at {0}'.format(fname))
         else:
             self.mmdata = mmap.mmap(self.fp.fileno(), 0, mmap.MAP_PRIVATE,
                                     mmap.PROT_READ)
@@ -153,6 +152,9 @@ class BDF(object):
                 full_mime = MIMEPart(self.fp,
                                      recurse=True, binary_size=self.bin_size)
                 self.mime_ints = full_mime.body[1:]
+        else:
+            logger.warn('No BDF file found at {0}'.format(self.fname))
+
 
     def _raw(self,idx):
         if self.fp:
@@ -166,6 +168,7 @@ class BDF(object):
                                            recurse=True)
             return self.mime_ints[idx]
         else:
+            logger.warn('No BDF file found at {0}'.format(self.fname))
             return None
 
     @property
