@@ -54,10 +54,10 @@ class SDM(object):
         """Return a Scan object for the given scan number."""
         return Scan(self,str(idx))
 
-    def scans(self, bdfonly=False):
+    def scans(self, hasbdf=True):
         """Iterate over scans."""
         # List of SDM scan numbers:
-        if bdfonly:
+        if hasbdf:
             scanidx = [s.scanNumber for s in self['Scan']
                        if self.scan(s.scanNumber).bdf.exists]
         else:
