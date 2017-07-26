@@ -54,8 +54,8 @@ class SDM(object):
         """Return a Scan object for the given scan number."""
         return Scan(self,str(idx))
 
-    def scans(self, hasbdf=True):
-        """Iterate over scans."""
+    def scans(self, hasbdf=False):
+        """Iterate over scans.  Set hasbdf=True to only return scans for which BDFs exist."""
         # List of SDM scan numbers:
         if hasbdf:
             scanidx = [s.scanNumber for s in self['Scan']
