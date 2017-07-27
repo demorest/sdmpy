@@ -271,12 +271,60 @@ class BDFSpectralWindow(object):
     """Class that represents spectral window information present in BDF files,
     including storing appropriate offsets into the main data array.  Should be 
     initialized from the spectralWindow XML element from the main BDF 
-    header."""
+    header.
+    
+    Alternatively, a BDFSpectralWindow can be generated directly without
+    reference to an existing XML element.  In this case, the following 
+    arguments should be filled in appropriately (names are same as in XML):
+        numBin
+        numSpectralPoint
+        sw
+        swbb
+    And the npol argument should be set to either 2 or 4; other values are
+    not currently handled.
 
-    def __init__(self, spw_elem, cross_offset=None, auto_offset=None):
-        self._attrib = spw_elem.attrib
+    An XML Element can be generated (eg for output) using the to_xml()
+    method.
+    """
+
+    # Example spw element:
+    # <spectralWindow sw="1" swbb="AC_8BIT" sdPolProducts="RR RL LL" crossPolProducts="RR RL LR LL" numSpectralPoint="64" numBin="40" scaleFactor="1.000000" sideband="NOSB"/>
+
+    def __init__(self, spw_elem, cross_offset=None, auto_offset=None,
+            numBin=None, numSpectralPoint=None, sw=None, swbb=None,
+            npol=None):
+        if spw_elem is not None:
+            self._attrib = spw_elem.attrib
+        else:
+            # Fill _attrib based on extra input:
+            self._attrib = {}
+            self._attrib['numBin'] = '%d' % numBin
+            self._attrib['numSpectralPoint'] = '%d' % numSpectralPoint
+            self._attrib['sw'] = '%d' % sw
+            self._attrib['swbb'] = str(swbb)
+            if npol==4:
+                self._attrib['sdPolProducts'] = 'RR RL LL'
+                self._attrib['crossPolProducts'] = 'RR RL LR LL'
+            elif npol==2:
+                self._attrib['sdPolProducts'] = 'RR LL'
+                self._attrib['crossPolProducts'] = 'RR LL'
+            else:
+                raise RuntimeError("Don't know how to handle npol=%d" % npol)
+            # Boilerplate for VLA?
+            self._attrib['scaleFactor'] = '1.000000'
+            self._attrib['sideband'] = 'NOSB'
+
         self.cross_offset = cross_offset
         self.auto_offset = auto_offset
+
+    def to_xml(self):
+        # Property?
+        # Note this returns a standalone xml Element, _not_ a reference to
+        # the original document structure that this was derived from.
+        result = etree.Element('spectralWindow')
+        for k,v in self._attrib.items():
+            result.attrib[k] = v
+        return result
 
     @property
     def numBin(self):
@@ -457,6 +505,40 @@ class BDFIntegration(object):
             dtmp = self.get_data(spwidx=spwidx,type=type).ravel()
         return float(len(dtmp) - numpy.count_nonzero(dtmp))/float(len(dtmp))
 
+# Notes for generating BDFs from scratch:
+#
+# Example data header:
+#<sdmDataHeader xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:xv="http://Alma/XVERSION" xmlns="http://Alma/XASDM/sdmbin" xsi:schemaLocation="http://Alma/XASDM/sdmbin http://almaobservatory.org/XML/XASDM/sdmbin/2/sdmDataObject.xsd" xv:schemaVersion="2" xv:revision="1.1.2.1" xv:release="ALMA-6_1_0-B" mainHeaderId="sdmDataHeader" byteOrder="Little_Endian" projectPath="0/1/1/">
+#  <startTime>4922977435000000000</startTime>
+#  <dataOID xl:type="locator" xl:href="uid:///evla/bdf/1416260627675" xl:title="EVLA WIDAR correlator visibility data"/>
+#  <dimensionality axes="TIM">1</dimensionality>
+#  <execBlock xl:href="uid:///evla/bdf/1416260627675" xl:type="simple"/>
+#  <numAntenna>27</numAntenna>
+#  <correlationMode>CROSS_AND_AUTO</correlationMode>
+#  <spectralResolution>FULL_RESOLUTION</spectralResolution>
+#  <processorType>CORRELATOR</processorType>
+#  <dataStruct xsi:type="CrossAndAutoData" apc="AP_UNCORRECTED">
+#    <baseband name="AC_8BIT">
+#      <spectralWindow sw="1" swbb="AC_8BIT" sdPolProducts="RR RL LL" crossPolProducts="RR RL LR LL" numSpectralPoint="64" numBin="40" scaleFactor="1.000000" sideband="NOSB"/>
+#    </baseband>
+#    <flags size="59400" axes="BAL ANT BAB SPW BIN STO"/>
+#    <actualTimes size="59400" axes="BAL ANT BAB SPW BIN STO"/>
+#    <actualDurations size="59400" axes="BAL ANT BAB SPW BIN STO"/>
+#    <crossData size="7188480" axes="BAL BAB SPW BIN SPP STO"/>
+#    <autoData size="276480" axes="ANT BAB SPW BIN SPP STO" normalized="false"/>
+#  </dataStruct>
+#</sdmDataHeader>
+#
+# Example data sub header:
+#<sdmDataSubsetHeader xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://Alma/XASDM/sdmbin" xsi:type="BinaryCrossAndAutoDataFXF" projectPath="0/1/1/1/">
+#  <schedulePeriodTime>
+#    <time>4922977454422548000</time>
+#    <interval>14350776000</interval>
+#  </schedulePeriodTime>
+#  <dataStruct ref="sdmDataHeader"/>
+#  <crossData xl:href="0/1/1/1/crossData.bin" type="FLOAT32_TYPE"/>
+#  <autoData xl:href="0/1/1/1/autoData.bin"/>
+#</sdmDataSubsetHeader>
 
 class BDFWriter(object):
     """
@@ -505,6 +587,12 @@ class BDFWriter(object):
         """Input is a BDFIntegration object.  The projectPath will be updated
         so that it is consistent for the file being written but otherwise
         no changes are made to the contents."""
+        # NOTES for doing this:  bdf_int does not really need to be a 
+        # BDFIntegration.  It needs to act like it in the following ways:
+        # 1. It needs to have a sdmDataSubsetHeader lxml Element object
+        # representing the sub header.
+        # 2. It needs to have a data attribute which is a dict of numpy
+        # arrays containing the actual data to be written.  It
         tophdr = MIMEHeader()
         tophdr['Content-Type'] = ['multipart/related', 'boundary='+self.mb2]
         tophdr['Content-Description'] = ['data and metadata subset',]
