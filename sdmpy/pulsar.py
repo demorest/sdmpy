@@ -5,6 +5,7 @@
 # Routines to support pulsar binned/gated SDM data
 
 import os
+import warnings
 import numpy as np
 
 # TODO maybe reconsider this dependency, although the MJD class is convenient
@@ -86,7 +87,13 @@ def dm_delay(dm,freq1,freq2=np.inf):
     DM.  Freqs in MHz, can be inf."""
     return (dm/0.000241)*(1.0/(freq1*freq1) - 1.0/(freq2*freq2))
 
-def rotate_phase(data,turns,axis=1):
+def rotate_phase(data,turns,axis=1,method='lin'):
+    if method == 'lin':
+        return rotate_phase_lin(data,turns,axis=axis)
+    elif method == 'fft':
+        return rotate_phase_fft(data,turns,axis=axis)
+
+def rotate_phase_lin(data,turns,axis=1):
     """Rotate the data array a given number of turns, assuming the specified
     axis is pulse phase and corresponds to a full turn of phase.  Currently
     uses linear interpolation, which may be a better choice than FFT-based
@@ -96,6 +103,21 @@ def rotate_phase(data,turns,axis=1):
     ri = int(r)
     rf = r - ri
     return (1.0-rf)*np.roll(data,ri,axis=axis)+rf*np.roll(data,ri+1,axis=axis)
+
+def rotate_phase_fft(data,turns,axis=1):
+    """Rotate the data array a given number of turns, assuming the specified
+    axis is pulse phase and corresponds to a full turn of phase.  Uses
+    FFT-based rotation."""
+    nbin = data.shape[axis]
+    shape = [1,] * len(data.shape)
+    shape[axis] = nbin
+    ff = np.arange(float(nbin))
+    ff[np.where(ff>nbin/2.0)] -= float(nbin)
+    phs = np.exp(2.0j*np.pi*turns*ff).reshape(shape)
+    fdata = np.fft.fft(data,axis=axis)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore",np.ComplexWarning)
+        return np.fft.ifft(fdata*phs,axis=axis).astype(data.dtype)
 
 def dedisperse_array(data,dm,freq,period,bin_axis=1,freq_axis=2,spw_axis=None):
     """Dedisperse a generic array of data, of which one axis represents an
