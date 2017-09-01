@@ -22,6 +22,8 @@ par.add_argument("-d", "--dm", type=float, default=0.0,
         help="dispersion measure (pc cm^-3) [%(default)s]")
 par.add_argument("-p", "--period", type=float, default=0.0,
         help="period data were folded (s) [auto]")
+par.add_argument("-P", "--polycos", action="store_true",
+        help="use polyco file to adjust timestamps [false]")
 args = par.parse_args()
 
 logging.basicConfig(format="%(asctime)-15s %(levelname)8s %(message)s", 
@@ -82,6 +84,16 @@ for scan in sdm.scans():
 
         iout = 0
 
+        # Try to load polycos
+        try:
+            polycofile = '%s/%s.%d.polyco' % (binlog._logdir,
+                    sdmname, int(scan.idx))
+            polys = psrchive.polyco(polycofile)
+            logging.info('Read polycos from %s' % polycofile)
+        except Exception as ex:
+            logging.info("Couldn't load polycos: " + repr(ex))
+            polys = None
+
         bdf = scan.bdf
         arch.resize(arch.get_nsubint() + bdf.numIntegration - 1)
         for isub in range(1,bdf.numIntegration):
@@ -101,11 +113,17 @@ for scan in sdm.scans():
                 logging.info('Using constant period')
             else:
                 if binlog is not None:
-                    (epoch,p,dt) = binlog.epoch_period(epoch_bdf)
+                    # Apply polyco time adjust
+                    if args.polycos and polys is not None:
+                        dt = (polys.period(epoch_bdf) 
+                                * polys.phase(epoch_bdf).fracturns())
+                        epoch = epoch_bdf - dt
+                        p = 0.0
+                    else:
+                        (epoch,p,dt) = binlog.epoch_period(epoch_bdf)
                 else:
                     (epoch,p,dt) = sdmpy.pulsar._get_epoch_period(epoch_bdf)
                 logging.info('Using epoch/period from dt=%.3fs' % dt)
-
 
             # These were used for testing dedispersion:
             #sdmpy.pulsar._dedisperse_array(mpsr, args.dm, freqs, p,
@@ -116,7 +134,7 @@ for scan in sdm.scans():
 
             subint.set_epoch(epoch)
             subint.set_duration(bdfsub.interval)
-            subint.set_folding_period(p)
+            if p>0.0: subint.set_folding_period(p)
             if isub==0:
                 wt=0.0
             else:
@@ -130,6 +148,8 @@ for scan in sdm.scans():
                 subint.set_weight(ochan,wt)
             iout += 1
 
+        if polys is not None:
+            arch.set_model(polys,False)
         outputname = sdmname + '.%03d.fits' % int(scan.idx)
         logging.info("unloading '%s'" % outputname)
         arch.unload(outputname)
