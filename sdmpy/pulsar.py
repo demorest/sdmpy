@@ -113,7 +113,7 @@ def rotate_phase_fft(data,turns,axis=1):
     shape[axis] = nbin
     ff = np.arange(float(nbin))
     ff[np.where(ff>nbin/2.0)] -= float(nbin)
-    phs = np.exp(2.0j*np.pi*turns*ff).reshape(shape)
+    phs = np.exp(-2.0j*np.pi*turns*ff).reshape(shape)
     fdata = np.fft.fft(data,axis=axis)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore",np.ComplexWarning)
