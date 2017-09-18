@@ -137,6 +137,12 @@ for scan in sdm.scans():
             # Axes should be (bl/ant, spw, bin, chan, pol)
             data = fullint.get_data(type=dtype).copy()
 
+            # extend zeros along bin axis
+            dataspw = data.sum(3,keepdims=True)
+            dataz = dataspw!=0.0
+            dataz_m = dataspw.all(2,keepdims=True)
+            data *= dataz_m
+            
             # Dedisperse if needed
             if args.dm!=0.0:
                 dedisperse_array(data, args.dm, freqs_spw, args.period,
