@@ -192,3 +192,28 @@ In [7]: b = s.bdf        # Get BDF object for this scan
 In [8]: d = b.get_data() # Read full visibility data array for the scan
 
 
+---------------------------------------------------------------------
+ipython session showing how to read the SysPower table:
+
+In [1]: import sdmpy
+
+In [2]: import sdmpy.bintab
+
+In [3]: s = sdmpy.SDM('17B-390_TEST_004.57994.73380716435')
+
+In [4]: sp = sdmpy.bintab.unpacker(s['SysPower'])
+
+In [5]: sp.unpack()
+
+In [6]: sp.row
+Out[6]:
+rec.array([ ('Antenna_12', 'SpectralWindow_0', 0, 5010745004500000768, 1000000512, 2, [-0.95052397, -1.26523304], [  8.90080357,  11.66342068], [ 0.015625,  0.015625]),
+ ('Antenna_12', 'SpectralWindow_1', 0, 5010745004500000768, 1000000512, 2, [ 1.625651  ,  1.82755697], [ 30.64261436,  27.64795876], [ 0.015625,  0.015625]),
+ ('Antenna_12', 'SpectralWindow_2', 0, 5010745004500000768, 1000000512, 2, [-0.40402299, -0.38874799], [ 17.41805077,  14.52512169], [ 0.015625,  0.015625]),
+ ...,
+ ('Antenna_7', 'SpectralWindow_5', 0, 5010752180500000768, 1000000512, 2, [ 0.26653701,  0.311874  ], [ 21.20673752,  24.39814377], [ 0.022736,  0.022736]),
+ ('Antenna_7', 'SpectralWindow_6', 0, 5010752180500000768, 1000000512, 2, [ 0.270816  ,  0.28408101], [ 20.47394753,  22.51699257], [ 0.020782,  0.022675]),
+ ('Antenna_7', 'SpectralWindow_7', 0, 5010752180500000768, 1000000512, 2, [ 0.31178999,  0.27066699], [ 22.78490829,  22.75772285], [ 0.021698,  0.021759])],
+          dtype=[('antennaId', 'S32'), ('spectralWindowId', 'S32'), ('feedId', '<i4'), ('timeMid', '<i8'), ('interval', '<i8'), ('numReceptor', '<i4'), ('switchedPowerDifference', '<f4', (2,)), ('switchedPowerSum', '<f4', (2,)), ('requantizerGain', '<f4', (2,))])
+
+
