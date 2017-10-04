@@ -5,6 +5,8 @@
 import os.path
 from lxml import etree, objectify
 
+from operator import attrgetter
+
 from .scan import Scan
 from .mime import MIMEPart, MIMEHeader
 
@@ -50,21 +52,21 @@ class SDM(object):
     def __getitem__(self,key):
         return self._tables[key]
 
-    def scan(self,idx):
-        """Return a Scan object for the given scan number."""
-        return Scan(self,str(idx))
+    def scan(self,idx, subidx=1):
+        """Return a Scan object for the given scan/subscan number."""
+        return Scan(self,str(idx),str(subidx))
 
     def scans(self, hasbdf=False):
         """Iterate over scans.  Set hasbdf=True to only return scans for which BDFs exist."""
         # List of SDM scan numbers:
         if hasbdf:
-            scanidx = [s.scanNumber for s in self['Scan']
-                       if self.scan(s.scanNumber).bdf.exists]
+            scanidx = [(s.scanNumber,s.subscanNumber) for s in self['Main']
+                       if os.path.exists(self.scan(s.scanNumber,s.subscanNumber).bdf_fname)]
         else:
-            scanidx = [s.scanNumber for s in self['Scan']]
+            scanidx = [(s.scanNumber,s.subscanNumber) for s in self['Main']]
 
         for idx in scanidx:
-            yield self.scan(idx)
+            yield self.scan(*idx)
 
     def _update_ASDM(self):
         """Updates the ASDM table with the current number of rows."""
@@ -120,31 +122,27 @@ class SDMTable(object):
     Init arguments:
       name = Name of table (not including .xml extension)
       path = Path to SDM directory
-      idtag = Name of ID tag in table (defaults to nameId)
 
     SDMTable[i] returns the i-th row as an lxml objectify object
     """
 
     # Any non-standard Id tag names can be listed here.
     # Note that for some tables a unique key is not a single tag
-    # but is defined as a combination of several tags.  We are
-    # just going to ignore this for now and do something that is
-    # convenient and seems to work for most EVLA data sets.
+    # but is defined as a combination of several tags.  This 
+    # is handled by setting a tuple of keys to be compared against
+    # here.
     _idtags = {
-            'Main': 'scanNumber',
-            'Scan': 'scanNumber',
-            'Subscan': 'scanNumber',
+            'Main': ('scanNumber','subscanNumber'),
+            'Scan': ('scanNumber',),
+            'Subscan': ('scanNumber','subscanNumber'),
             }
 
-    def __init__(self,name,path='.',idtag=None,use_xsd=True):
+    def __init__(self,name,path='.',use_xsd=True):
         self.name = name
-        if idtag is None:
-            try:
-                self.idtag = self._idtags[name]
-            except KeyError:
-                self.idtag = decap(str(name)) + 'Id'
-        else:
-            self.idtag = idtag
+        try:
+            self.idtag = attrgetter(*self._idtags[name])
+        except KeyError:
+            self.idtag = attrgetter(decap(str(name)) + 'Id')
         if use_xsd: parser = _sdm_parser
         else: parser = None
         self._tree = objectify.parse(path+'/'+name+'.xml',parser)
@@ -168,8 +166,17 @@ class SDMTable(object):
             # the matching id tag:
             for r in self._table.row:
                 try:
-                    if str(getattr(r,self.idtag)) == key:
-                        return r
+                    tag = self.idtag(r)
+                    # For multi-key comparsions idtag will return a tuple.
+                    # We'll require key to be a tuple also in this case,
+                    # and need to explicitly check type to avoid problems 
+                    # with string (eg, dont want (1,1) to match '11').
+                    if isinstance(tag,tuple):
+                        if isinstance(key,tuple) and map(str,tag)==map(str,key):
+                            return r
+                    else:
+                        if str(tag) == str(key):
+                            return r
                 except AttributeError:
                     pass
             # No matching rows:

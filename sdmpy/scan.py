@@ -21,16 +21,18 @@ def sdmarray(s,dtype=None):
 
 class Scan(object):
     """
-    Represents a single scan as part of a SDM/BDF dataset.  Convenience
+    Represents a single subscan as part of a SDM/BDF dataset.  Convenience
     interface to open the BDF, get useful metadata, etc.
     """
-    def __init__(self, sdm, scanidx):
+    def __init__(self, sdm, scanidx, subscanidx=1):
         """
         sdm is the SDM object.
-        scanidx is the index into the Main table.
+        scanidx is the scan number.
+        subscanidx is the subscan number.
         """
         self.sdm = sdm
-        self.idx = scanidx
+        self.idx = str(scanidx)
+        self.subidx = str(subscanidx)
         self._bdf = None
 
     @property
@@ -42,7 +44,7 @@ class Scan(object):
     @property
     def _main(self):
         """Convenience interface to the SDM Main table row."""
-        return self.sdm['Main'][self.idx]
+        return self.sdm['Main'][(self.idx,self.subidx)]
 
     @property
     def _scan(self):
@@ -52,7 +54,7 @@ class Scan(object):
     @property
     def _subscan(self):
         """Convenience interface to the SDM Subscan table row."""
-        return self.sdm['Subscan'][self.idx]
+        return self.sdm['Subscan'][(self.idx,self.subidx)]
 
     @property
     def _config(self):
@@ -76,7 +78,13 @@ class Scan(object):
 
     @property
     def source(self):
+        """Source name as defined in SDM Scan table."""
         return self._scan.sourceName
+
+    @property
+    def field(self):
+        """Field name as defined in SDM Subscan table."""
+        return self._subscan.fieldName
 
     @property
     def coordinates(self):
@@ -94,6 +102,11 @@ class Scan(object):
     def intents(self):
         """Return the list of intents for this scan."""
         return list(sdmarray(self._scan.scanIntent))
+
+    @property
+    def subintent(self):
+        """Return the subscan intent."""
+        return self._subscan.subscanIntent
 
     @property
     def antennas(self):
