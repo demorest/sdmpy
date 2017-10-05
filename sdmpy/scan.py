@@ -149,6 +149,11 @@ class Scan(object):
         return float(self._scan.endTime/86400.0e9)
 
     @property
+    def numIntegration(self):
+        """Number of integrations as listed in the SDM Main table."""
+        return int(self._main.numIntegration)
+
+    @property
     def spws(self):
         """ Return the list of spw names """
         
