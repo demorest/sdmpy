@@ -227,8 +227,21 @@ class BDF(object):
     def get_data(self,spwidx='all',type='cross',scrunch=False,
             fscrunch=False,frange=None,trange=None,bar=False):
         """Returns an array containing all integrations for the specified
-        baseband, spw and data type.  If scrunch=True, all integrations
-        will be averaged."""
+        spw and data type.  Takes a number of options:
+
+          trange: tuple giving range of integrations to return (default=all).
+          scrunch: if True, all requested integrations will be time-averaged.
+          fscrunch: if True, data will be averaged over the channel axis.
+          frange: range of channels to average if using fscrunch.
+          bar: if True and the progressbar package is available, display
+            a progress bar as data are loaded.
+
+        If spwidx=='all' and no averaging was requested, then the dimensions 
+        of the returned array are: (time, baseline/antenna, spw, bin, channel, 
+        polarization).  If a single spw is selected, the spw axis is omitted.
+        If time and/or freq averaging is selected, the time and/or channel
+        axes are omitted.
+        """
         chidx = -2 # index of spectral channels
         # Figure out ranges:
         if trange is None:
