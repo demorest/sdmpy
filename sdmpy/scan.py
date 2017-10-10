@@ -142,11 +142,11 @@ class Scan(object):
 
     @property
     def startMJD(self):
-        return float(self._scan.startTime/86400.0e9)
+        return float(self._subscan.startTime/86400.0e9)
 
     @property
     def endMJD(self):
-        return float(self._scan.endTime/86400.0e9)
+        return float(self._subscan.endTime/86400.0e9)
 
     @property
     def numIntegration(self):
