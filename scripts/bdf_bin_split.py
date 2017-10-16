@@ -8,6 +8,7 @@
 import os, sys
 from collections import namedtuple
 import numpy as np
+from numpy.fft import fft, ifft
 np.errstate(divide='ignore')
 import sdmpy
 from sdmpy.pulsar import dedisperse_array
@@ -28,6 +29,8 @@ par.add_argument("-C", "--cal", action="store_true",
         help="produce sum/diff outputs (cal mode)")
 par.add_argument("-A", "--fixautos", action="store_true",
         help="attempt to fix sign of autocorr poln products")
+par.add_argument("-T", "--template", type=str, default='',
+        help="convolve with ascii template given in filename")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
@@ -36,11 +39,34 @@ sdm = sdmpy.SDM(sdmname)
 
 # Get the number of bins, currently assumes it's constant throughout
 # the data set.
+# TODO: when processing a multi-bin data set this will need to change,
+# I guess the right thing to do is get the maximum number of bins
+# during the observation and set up enough output files to handle
+# that case.
 try:
     bdf0 = sdm.scan(args.scan[0]).bdf
 except IndexError:
     bdf0 = sdm.scan(1).bdf
 nbin = bdf0.spws[0].numBin
+
+# Read a template file
+tmpl = None
+if args.template:
+    # Assume this is a simple ascii file of template values
+    tmpl = np.loadtxt(args.template,usecols=0)
+    # Check that number of bins matches.  Could implement template rebinning
+    # at some point.
+    if len(tmpl) != nbin:
+        print "Error, number of template bins (%d) does not match data (%d)" % (
+                len(tmpl), nbin)
+        sys.exit(1)
+    # Rescale template values to preserve mean flux, and mean-subtract:
+    tmpl -= tmpl.min()
+    tmpl /= tmpl.sum()
+    tmpl -= tmpl.mean()
+    # FFT to prepare for convolution later on.  reshape so that it 
+    # will broadcast correctly against a full data array.
+    ftmpl = np.conj(fft(tmpl)).reshape((1,1,nbin,1,1))
 
 # Sets up the output paths.  Use the "extra" ibin==nbin entry
 # for the averaged data.
@@ -166,10 +192,16 @@ for scan in sdm.scans():
                 binint[1].data[dtype] = wt*(b1-b0)
             else:
                 binint[nbin].data[dtype] = data.mean(axis=2)
-                for ibin in range(nbin):
-                    binint[ibin].data[dtype] = data.take(ibin,axis=2)
-                    if args.meansub:
-                        binint[ibin].data[dtype] -= binint[nbin].data[dtype]
+                if tmpl is not None:
+                    cdata = ifft(fft(data,axis=2)*ftmpl,axis=2)
+                    for ibin in range(nbin):
+                        binint[ibin].data[dtype] = \
+                                cdata.take(ibin,axis=2).astype(data.dtype)
+                else:
+                    for ibin in range(nbin):
+                        binint[ibin].data[dtype] = data.take(ibin,axis=2)
+                        if args.meansub:
+                            binint[ibin].data[dtype] -= binint[nbin].data[dtype]
 
         for ibin in range(len(bdfout)):
             bdfout[ibin].write_integration(binint[ibin])
