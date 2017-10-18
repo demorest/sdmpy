@@ -528,7 +528,89 @@ class BDFIntegration(object):
 #    <autoData size="276480" axes="ANT BAB SPW BIN SPP STO" normalized="false"/>
 #  </dataStruct>
 #</sdmDataHeader>
-#
+
+# Build a sdmDataHeader from scratch
+_nsmap_hdr =  {
+        'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xl': 'http://www.w3.org/1999/xlink',
+        'xv': 'http://Alma/XVERSION',
+        None: 'http://Alma/XASDM/sdmbin'
+        }
+def _sdmDataHeader(time,uid,num_antenna,spws,cross=True,auto=True):
+    """Generate a sdmDataHeader XML element from the specified parameters:
+        time: start time in SDM format (MJD ns)
+        uid: unique ID for the BDF
+        num_antenna: number of antennas in the data
+        spws: list of BDFSpectralWindow objects; order matters!
+    """
+    _E = objectify.ElementMaker(annotate=False,nsmap=_nsmap_hdr)
+    xl_type = '{%s}type' % _nsmap_hdr['xl']
+    xsi_type = '{%s}type' % _nsmap_hdr['xsi']
+    xl_href = '{%s}href' % _nsmap_hdr['xl']
+    xl_title = '{%s}title' % _nsmap_hdr['xl']
+    xsi_schemalocation = '{%s}schemaLocation' % _nsmap_hdr['xsi']
+    xv_schemaversion = '{%s}schemaVersion' % _nsmap_hdr['xv']
+    xv_revision = '{%s}revision' % _nsmap_hdr['xv']
+    xv_release = '{%s}release' % _nsmap_hdr['xv']
+    if cross and auto:
+        corr_mode = 'CROSS_AND_AUTO'
+        data_type = 'CrossAndAutoData'
+    elif cross:
+        corr_mode = 'CROSS_ONLY'
+        data_type = 'CrossData'
+    elif auto:
+        corr_mode = 'AUTO_ONLY'
+        data_type = 'AutoData'
+    else:
+        raise RuntimeError('No data type specified (cross or auto).')
+    result = _E.sdmDataHeader(
+            _E.startTime(time),
+            _E.dataOID({
+                xl_type: 'locator',
+                xl_href: uid,
+                xl_title: "EVLA WIDAR correlator visibility data"
+                }),
+            _E.dimensionality(1,axes="TIM"),
+            _E.execBlock({xl_href: uid, xl_type: "simple"}),
+            _E.numAntenna(num_antenna),
+            _E.correlationMode(corr_mode),
+            _E.spectralResolution('FULL_RESOLUTION'),
+            _E.processorType('CORRELATOR'),
+            _E.dataStruct({xsi_type: data_type, 'apc': 'AP_UNCORRECTED'}),
+            # sdmDataHeader attributes
+            {xsi_schemalocation: 'http://Alma/XASDM/sdmbin http://almaobservatory.org/XML/XASDM/sdmbin/2/sdmDataObject.xsd',
+                xv_schemaversion: '2',
+                xv_revision: '1.1.2.1',
+                xv_release: 'ALMA-6_1_0-B',
+                'mainHeaderId': 'sdmDataHeader',
+                'byteOrder': 'Little_Endian',
+                'projectPath': '0/1/1/'}
+            )
+    # Now add the spws.  We are assuming they are sorted in the right
+    # order already...
+    cur_bb = None
+    auto_size = 0
+    cross_size = 0 
+    for s in spws:
+        if s.swbb != cur_bb:
+            cur_bb = s.swbb
+            bb = _E.baseband(name=cur_bb)
+            result.dataStruct.append(bb)
+        bb.append(s.to_xml())
+        auto_size += s.dsize('auto')
+        cross_size += s.dsize('cross')
+    num_baseline = num_antenna * (num_antenna-1) / 2
+    auto_size *= num_antenna
+    cross_size *= 2.0 * num_baseline
+    if cross:
+        result.dataStruct.append(_E.crossData(size='%d'%cross_size,
+            axes="BAL BAB SPW BIN SPP STO"))
+    if auto:
+        result.dataStruct.append(_E.autoData(size='%d'%auto_size,
+            axes="ANT BAB SPW BIN SPP STO",
+            normalized="false"))
+    return result
+
 # Example data sub header:
 #<sdmDataSubsetHeader xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://Alma/XASDM/sdmbin" xsi:type="BinaryCrossAndAutoDataFXF" projectPath="0/1/1/1/">
 #  <schedulePeriodTime>
@@ -539,6 +621,39 @@ class BDFIntegration(object):
 #  <crossData xl:href="0/1/1/1/crossData.bin" type="FLOAT32_TYPE"/>
 #  <autoData xl:href="0/1/1/1/autoData.bin"/>
 #</sdmDataSubsetHeader>
+
+# Build a sdmDataSubsetHeader element from scratch
+_nsmap_subhdr =  {
+        'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xl': 'http://www.w3.org/1999/xlink',
+        None: 'http://Alma/XASDM/sdmbin'
+        }
+def _sdmDataSubsetHeader(time,interval,cross=True,auto=True,path='0/0/0/0/'):
+    _E = objectify.ElementMaker(annotate=False,nsmap=_nsmap_subhdr)
+    xl_href = '{%s}href' % _nsmap_subhdr['xl']
+    xsi_type = '{%s}type' % _nsmap_subhdr['xsi']
+    result = _E.sdmDataSubsetHeader(
+            _E.schedulePeriodTime(
+                _E.time(time),
+                _E.interval(interval)
+                ),
+            _E.dataStruct(ref='sdmDataHeader'),
+            projectPath = path 
+            )
+    if cross:
+        result.append(_E.crossData({
+            'type': 'FLOAT32_TYPE', 
+            xl_href: path + 'crossData.bin'
+            }))
+        result.attrib[xsi_type] = 'BinaryCrossDataFXF'
+    if auto:
+        result.append(_E.autoData({
+            xl_href: path + 'autoData.bin'
+            }))
+        result.attrib[xsi_type] = 'BinaryAutoDataFXF'
+    if cross and auto:
+        result.attrib[xsi_type] = 'BinaryCrossAndAutoDataFXF'
+    return result
 
 class BDFWriter(object):
     """
