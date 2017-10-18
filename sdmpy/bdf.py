@@ -536,7 +536,7 @@ _nsmap_hdr =  {
         'xv': 'http://Alma/XVERSION',
         None: 'http://Alma/XASDM/sdmbin'
         }
-def _sdmDataHeader(time,uid,num_antenna,spws,cross=True,auto=True):
+def _sdmDataHeader(time,uid,num_antenna,spws,path='0/1/1',cross=True,auto=True):
     """Generate a sdmDataHeader XML element from the specified parameters:
         time: start time in SDM format (MJD ns)
         uid: unique ID for the BDF
@@ -584,7 +584,7 @@ def _sdmDataHeader(time,uid,num_antenna,spws,cross=True,auto=True):
                 xv_release: 'ALMA-6_1_0-B',
                 'mainHeaderId': 'sdmDataHeader',
                 'byteOrder': 'Little_Endian',
-                'projectPath': '0/1/1/'}
+                'projectPath': path}
             )
     # Now add the spws.  We are assuming they are sorted in the right
     # order already...
@@ -628,7 +628,7 @@ _nsmap_subhdr =  {
         'xl': 'http://www.w3.org/1999/xlink',
         None: 'http://Alma/XASDM/sdmbin'
         }
-def _sdmDataSubsetHeader(time,interval,cross=True,auto=True,path='0/0/0/0/'):
+def _sdmDataSubsetHeader(time,interval,cross=True,auto=True,path='0/1/1/1/'):
     _E = objectify.ElementMaker(annotate=False,nsmap=_nsmap_subhdr)
     xl_href = '{%s}href' % _nsmap_subhdr['xl']
     xsi_type = '{%s}type' % _nsmap_subhdr['xsi']
@@ -659,11 +659,22 @@ class BDFWriter(object):
     """
     Write a BDF file.
     """
-    def __init__(self, fname, bdf=None):
+    def __init__(self, fname, bdf=None, start_mjd=None, uid=None, 
+            num_antenna=None, spws=None, scan_idx=None, subscan_idx=1,
+            corr_mode=None):
         """Init BDFWrite with output filename (fname).  If the bdf
         argument contains a BDF object, its header is copied for the
-        output file.  Otherwise the BDFWrite.sdmDataHeader needs to 
-        be populated."""
+        output file.  Otherwise the following arguments need to be 
+        filled in for the header:
+            
+            start_mjd: Start time of the BDF in MJD
+            uid: UID to put in the header (eg, uid:///evla/bdf/1484080742396)
+            num_antenna: Number of antennas
+            spws: List of BDFSpectralWindow objects in correct order
+            scan_idx: index of this scan in the SDM
+            subscan_idx: idx of the subscan in the SDM (default 1)
+            corr_mode:  'ca' for cross and auto, 'c' for cross, 'a' for auto
+        """
         self.fname = fname
         self.fp = None
         self.curidx = 1
@@ -675,6 +686,13 @@ class BDFWriter(object):
         self.sdmDataHeader = None
         if bdf is not None: 
             self.sdmDataHeader = deepcopy(bdf.sdmDataHeader)
+        else:
+            cross = 'c' in corr_mode
+            auto = 'a' in corr_mode
+            path = '0/%d/%d/' % (scan_idx, subscan_idx)
+            self.sdmDataHeader = _sdmDataHeader(int(start_mjd*86400.0e9),
+                    uid, num_antenna, spws, path=path,
+                    cross=cross, auto=auto)
 
     def write_header(self):
         """Open output and write the current header contents."""
@@ -698,10 +716,23 @@ class BDFWriter(object):
         self.fp.write(etree.tostring(self.sdmDataHeader,
             standalone=True,encoding='utf-8') + '\n')
 
-    def write_integration(self,bdf_int):
-        """Input is a BDFIntegration object.  The projectPath will be updated
-        so that it is consistent for the file being written but otherwise
-        no changes are made to the contents."""
+    def write_integration(self, bdf_int=None, mjd=None, 
+            interval=None, data=None):
+        """
+        Input is a BDFIntegration object (bdf_int).  The projectPath will 
+        be updated so that it is consistent for the file being written but 
+        otherwise no changes are made to the contents.  
+
+        Alternately, rather than a bdf_int, the remaining arguments can be
+        filled in (for creating BDFs from scratch):
+
+          mjd: the MJD of the midpoint of the integaration
+          interval: the duration of the integration (sec)
+          data: a dict whose entries are the numpy data arrays.  The 
+            keywords should be one or both of 'crossData' and 'autoData'
+            depending on whether cross-correlations, auto-correlations, or
+            both are present in the data set.
+        """
         # NOTES for doing this:  bdf_int does not really need to be a 
         # BDFIntegration.  It needs to act like it in the following ways:
         # 1. It needs to have a sdmDataSubsetHeader lxml Element object
@@ -724,8 +755,16 @@ class BDFWriter(object):
             raise RuntimeError('nxpad(0)<0')
         hdr['X-pad'] = ['*'*nxpad,]
 
-        # Update subhdr with new path
-        subhdr = deepcopy(bdf_int.sdmDataSubsetHeader)
+        # Copy or generate XML sub-header
+        if bdf_int is not None:
+            subhdr = deepcopy(bdf_int.sdmDataSubsetHeader)
+            data = bdf_int.data
+        else:
+            cross = 'crossData' in data.keys()
+            auto = 'autoData' in data.keys()
+            subhdr = _sdmDataSubsetHeader(int(mjd*86400e9), int(interval*1e9), 
+                    cross=cross, auto=auto)
+
         subhdr.attrib['projectPath'] = ppidx
         nsxl = subhdr.nsmap['xl']
         dtypes = []
@@ -748,14 +787,14 @@ class BDFWriter(object):
         nxpad = self.len1 - (len(subhdr_str) + len(mhdr[dtypes[0]].tostring()))
         mhdr[dtypes[0]]['X-pad'] = ['*'*nxpad,]
 
-        # Assumes at most 2 data types.. TODO make more general
+        # Assumes at most 2 data types.. TODO make more general?
         if len(dtypes)>1:
             if self.len2==0:
                 self.len2 = len(mhdr[dtypes[1]].tostring()) + 12
             nxpad = self.len2 - len(mhdr[dtypes[1]].tostring())
             mhdr[dtypes[1]]['X-pad'] = ['*'*nxpad,]
 
-        # TODO could check that data sizes match up with header info..
+        # TODO should check that data sizes match up with header info..
 
         # Now write it all out..
         self.fp.write('--' + self.mb1 + '\n')
@@ -770,7 +809,7 @@ class BDFWriter(object):
         for dtype in dtypes:
             self.fp.write('\n--' + self.mb2 + '\n')
             self.fp.write(mhdr[dtype].tostring() + '\n')
-            self.fp.write(bdf_int.data[dtype])
+            self.fp.write(data[dtype])
 
         # Close out mime
         self.fp.write('\n--' + self.mb2 + '--\n')
