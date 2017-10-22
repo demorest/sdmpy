@@ -284,12 +284,60 @@ class BDFSpectralWindow(object):
     """Class that represents spectral window information present in BDF files,
     including storing appropriate offsets into the main data array.  Should be 
     initialized from the spectralWindow XML element from the main BDF 
-    header."""
+    header.
+    
+    Alternatively, a BDFSpectralWindow can be generated directly without
+    reference to an existing XML element.  In this case, the following 
+    arguments should be filled in appropriately (names are same as in XML):
+        numBin
+        numSpectralPoint
+        sw
+        swbb
+    And the npol argument should be set to either 2 or 4; other values are
+    not currently handled.
 
-    def __init__(self, spw_elem, cross_offset=None, auto_offset=None):
-        self._attrib = spw_elem.attrib
+    An XML Element can be generated (eg for output) using the to_xml()
+    method.
+    """
+
+    # Example spw element:
+    # <spectralWindow sw="1" swbb="AC_8BIT" sdPolProducts="RR RL LL" crossPolProducts="RR RL LR LL" numSpectralPoint="64" numBin="40" scaleFactor="1.000000" sideband="NOSB"/>
+
+    def __init__(self, spw_elem, cross_offset=None, auto_offset=None,
+            numBin=None, numSpectralPoint=None, sw=None, swbb=None,
+            npol=None):
+        if spw_elem is not None:
+            self._attrib = spw_elem.attrib
+        else:
+            # Fill _attrib based on extra input:
+            self._attrib = {}
+            self._attrib['numBin'] = '%d' % numBin
+            self._attrib['numSpectralPoint'] = '%d' % numSpectralPoint
+            self._attrib['sw'] = '%d' % sw
+            self._attrib['swbb'] = str(swbb)
+            if npol==4:
+                self._attrib['sdPolProducts'] = 'RR RL LL'
+                self._attrib['crossPolProducts'] = 'RR RL LR LL'
+            elif npol==2:
+                self._attrib['sdPolProducts'] = 'RR LL'
+                self._attrib['crossPolProducts'] = 'RR LL'
+            else:
+                raise RuntimeError("Don't know how to handle npol=%d" % npol)
+            # Boilerplate for VLA?
+            self._attrib['scaleFactor'] = '1.000000'
+            self._attrib['sideband'] = 'NOSB'
+
         self.cross_offset = cross_offset
         self.auto_offset = auto_offset
+
+    def to_xml(self):
+        # Property?
+        # Note this returns a standalone xml Element, _not_ a reference to
+        # the original document structure that this was derived from.
+        result = etree.Element('spectralWindow')
+        for k,v in self._attrib.items():
+            result.attrib[k] = v
+        return result
 
     @property
     def numBin(self):
@@ -470,16 +518,176 @@ class BDFIntegration(object):
             dtmp = self.get_data(spwidx=spwidx,type=type).ravel()
         return float(len(dtmp) - numpy.count_nonzero(dtmp))/float(len(dtmp))
 
+# Notes for generating BDFs from scratch:
+#
+# Example data header:
+#<sdmDataHeader xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:xv="http://Alma/XVERSION" xmlns="http://Alma/XASDM/sdmbin" xsi:schemaLocation="http://Alma/XASDM/sdmbin http://almaobservatory.org/XML/XASDM/sdmbin/2/sdmDataObject.xsd" xv:schemaVersion="2" xv:revision="1.1.2.1" xv:release="ALMA-6_1_0-B" mainHeaderId="sdmDataHeader" byteOrder="Little_Endian" projectPath="0/1/1/">
+#  <startTime>4922977435000000000</startTime>
+#  <dataOID xl:type="locator" xl:href="uid:///evla/bdf/1416260627675" xl:title="EVLA WIDAR correlator visibility data"/>
+#  <dimensionality axes="TIM">1</dimensionality>
+#  <execBlock xl:href="uid:///evla/bdf/1416260627675" xl:type="simple"/>
+#  <numAntenna>27</numAntenna>
+#  <correlationMode>CROSS_AND_AUTO</correlationMode>
+#  <spectralResolution>FULL_RESOLUTION</spectralResolution>
+#  <processorType>CORRELATOR</processorType>
+#  <dataStruct xsi:type="CrossAndAutoData" apc="AP_UNCORRECTED">
+#    <baseband name="AC_8BIT">
+#      <spectralWindow sw="1" swbb="AC_8BIT" sdPolProducts="RR RL LL" crossPolProducts="RR RL LR LL" numSpectralPoint="64" numBin="40" scaleFactor="1.000000" sideband="NOSB"/>
+#    </baseband>
+#    <flags size="59400" axes="BAL ANT BAB SPW BIN STO"/>
+#    <actualTimes size="59400" axes="BAL ANT BAB SPW BIN STO"/>
+#    <actualDurations size="59400" axes="BAL ANT BAB SPW BIN STO"/>
+#    <crossData size="7188480" axes="BAL BAB SPW BIN SPP STO"/>
+#    <autoData size="276480" axes="ANT BAB SPW BIN SPP STO" normalized="false"/>
+#  </dataStruct>
+#</sdmDataHeader>
+
+# Build a sdmDataHeader from scratch
+_nsmap_hdr =  {
+        'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xl': 'http://www.w3.org/1999/xlink',
+        'xv': 'http://Alma/XVERSION',
+        None: 'http://Alma/XASDM/sdmbin'
+        }
+def _sdmDataHeader(time,uid,num_antenna,spws,path='0/1/1',cross=True,auto=True):
+    """Generate a sdmDataHeader XML element from the specified parameters:
+        time: start time in SDM format (MJD ns)
+        uid: unique ID for the BDF
+        num_antenna: number of antennas in the data
+        spws: list of BDFSpectralWindow objects; order matters!
+    """
+    _E = objectify.ElementMaker(annotate=False,nsmap=_nsmap_hdr)
+    xl_type = '{%s}type' % _nsmap_hdr['xl']
+    xsi_type = '{%s}type' % _nsmap_hdr['xsi']
+    xl_href = '{%s}href' % _nsmap_hdr['xl']
+    xl_title = '{%s}title' % _nsmap_hdr['xl']
+    xsi_schemalocation = '{%s}schemaLocation' % _nsmap_hdr['xsi']
+    xv_schemaversion = '{%s}schemaVersion' % _nsmap_hdr['xv']
+    xv_revision = '{%s}revision' % _nsmap_hdr['xv']
+    xv_release = '{%s}release' % _nsmap_hdr['xv']
+    if cross and auto:
+        corr_mode = 'CROSS_AND_AUTO'
+        data_type = 'CrossAndAutoData'
+    elif cross:
+        corr_mode = 'CROSS_ONLY'
+        data_type = 'CrossData'
+    elif auto:
+        corr_mode = 'AUTO_ONLY'
+        data_type = 'AutoData'
+    else:
+        raise RuntimeError('No data type specified (cross or auto).')
+    result = _E.sdmDataHeader(
+            _E.startTime(time),
+            _E.dataOID({
+                xl_type: 'locator',
+                xl_href: uid,
+                xl_title: "EVLA WIDAR correlator visibility data"
+                }),
+            _E.dimensionality(1,axes="TIM"),
+            _E.execBlock({xl_href: uid, xl_type: "simple"}),
+            _E.numAntenna(num_antenna),
+            _E.correlationMode(corr_mode),
+            _E.spectralResolution('FULL_RESOLUTION'),
+            _E.processorType('CORRELATOR'),
+            _E.dataStruct({xsi_type: data_type, 'apc': 'AP_UNCORRECTED'}),
+            # sdmDataHeader attributes
+            {xsi_schemalocation: 'http://Alma/XASDM/sdmbin http://almaobservatory.org/XML/XASDM/sdmbin/2/sdmDataObject.xsd',
+                xv_schemaversion: '2',
+                xv_revision: '1.1.2.1',
+                xv_release: 'ALMA-6_1_0-B',
+                'mainHeaderId': 'sdmDataHeader',
+                'byteOrder': 'Little_Endian',
+                'projectPath': path}
+            )
+    # Now add the spws.  We are assuming they are sorted in the right
+    # order already...
+    cur_bb = None
+    auto_size = 0
+    cross_size = 0 
+    for s in spws:
+        if s.swbb != cur_bb:
+            cur_bb = s.swbb
+            bb = _E.baseband(name=cur_bb)
+            result.dataStruct.append(bb)
+        bb.append(s.to_xml())
+        auto_size += s.dsize('auto')
+        cross_size += s.dsize('cross')
+    num_baseline = num_antenna * (num_antenna-1) / 2
+    auto_size *= num_antenna
+    cross_size *= 2.0 * num_baseline
+    if cross:
+        result.dataStruct.append(_E.crossData(size='%d'%cross_size,
+            axes="BAL BAB SPW BIN SPP STO"))
+    if auto:
+        result.dataStruct.append(_E.autoData(size='%d'%auto_size,
+            axes="ANT BAB SPW BIN SPP STO",
+            normalized="false"))
+    return result
+
+# Example data sub header:
+#<sdmDataSubsetHeader xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://Alma/XASDM/sdmbin" xsi:type="BinaryCrossAndAutoDataFXF" projectPath="0/1/1/1/">
+#  <schedulePeriodTime>
+#    <time>4922977454422548000</time>
+#    <interval>14350776000</interval>
+#  </schedulePeriodTime>
+#  <dataStruct ref="sdmDataHeader"/>
+#  <crossData xl:href="0/1/1/1/crossData.bin" type="FLOAT32_TYPE"/>
+#  <autoData xl:href="0/1/1/1/autoData.bin"/>
+#</sdmDataSubsetHeader>
+
+# Build a sdmDataSubsetHeader element from scratch
+_nsmap_subhdr =  {
+        'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+        'xl': 'http://www.w3.org/1999/xlink',
+        None: 'http://Alma/XASDM/sdmbin'
+        }
+def _sdmDataSubsetHeader(time,interval,cross=True,auto=True,path='0/1/1/1/'):
+    _E = objectify.ElementMaker(annotate=False,nsmap=_nsmap_subhdr)
+    xl_href = '{%s}href' % _nsmap_subhdr['xl']
+    xsi_type = '{%s}type' % _nsmap_subhdr['xsi']
+    result = _E.sdmDataSubsetHeader(
+            _E.schedulePeriodTime(
+                _E.time(time),
+                _E.interval(interval)
+                ),
+            _E.dataStruct(ref='sdmDataHeader'),
+            projectPath = path 
+            )
+    if cross:
+        result.append(_E.crossData({
+            'type': 'FLOAT32_TYPE', 
+            xl_href: path + 'crossData.bin'
+            }))
+        result.attrib[xsi_type] = 'BinaryCrossDataFXF'
+    if auto:
+        result.append(_E.autoData({
+            xl_href: path + 'autoData.bin'
+            }))
+        result.attrib[xsi_type] = 'BinaryAutoDataFXF'
+    if cross and auto:
+        result.attrib[xsi_type] = 'BinaryCrossAndAutoDataFXF'
+    return result
 
 class BDFWriter(object):
     """
     Write a BDF file.
     """
-    def __init__(self, fname, bdf=None):
+    def __init__(self, fname, bdf=None, start_mjd=None, uid=None, 
+            num_antenna=None, spws=None, scan_idx=None, subscan_idx=1,
+            corr_mode=None):
         """Init BDFWrite with output filename (fname).  If the bdf
         argument contains a BDF object, its header is copied for the
-        output file.  Otherwise the BDFWrite.sdmDataHeader needs to 
-        be populated."""
+        output file.  Otherwise the following arguments need to be 
+        filled in for the header:
+            
+            start_mjd: Start time of the BDF in MJD
+            uid: UID to put in the header (eg, uid:///evla/bdf/1484080742396)
+            num_antenna: Number of antennas
+            spws: List of BDFSpectralWindow objects in correct order
+            scan_idx: index of this scan in the SDM
+            subscan_idx: idx of the subscan in the SDM (default 1)
+            corr_mode:  'ca' for cross and auto, 'c' for cross, 'a' for auto
+        """
         self.fname = fname
         self.fp = None
         self.curidx = 1
@@ -491,6 +699,13 @@ class BDFWriter(object):
         self.sdmDataHeader = None
         if bdf is not None: 
             self.sdmDataHeader = deepcopy(bdf.sdmDataHeader)
+        else:
+            cross = 'c' in corr_mode
+            auto = 'a' in corr_mode
+            path = '0/%d/%d/' % (scan_idx, subscan_idx)
+            self.sdmDataHeader = _sdmDataHeader(int(start_mjd*86400.0e9),
+                    uid, num_antenna, spws, path=path,
+                    cross=cross, auto=auto)
 
     def write_header(self):
         """Open output and write the current header contents."""
@@ -514,10 +729,29 @@ class BDFWriter(object):
         self.fp.write(etree.tostring(self.sdmDataHeader,
             standalone=True,encoding='utf-8') + '\n')
 
-    def write_integration(self,bdf_int):
-        """Input is a BDFIntegration object.  The projectPath will be updated
-        so that it is consistent for the file being written but otherwise
-        no changes are made to the contents."""
+    def write_integration(self, bdf_int=None, mjd=None, 
+            interval=None, data=None):
+        """
+        Input is a BDFIntegration object (bdf_int).  The projectPath will 
+        be updated so that it is consistent for the file being written but 
+        otherwise no changes are made to the contents.  
+
+        Alternately, rather than a bdf_int, the remaining arguments can be
+        filled in (for creating BDFs from scratch):
+
+          mjd: the MJD of the midpoint of the integaration
+          interval: the duration of the integration (sec)
+          data: a dict whose entries are the numpy data arrays.  The 
+            keywords should be one or both of 'crossData' and 'autoData'
+            depending on whether cross-correlations, auto-correlations, or
+            both are present in the data set.
+        """
+        # NOTES for doing this:  bdf_int does not really need to be a 
+        # BDFIntegration.  It needs to act like it in the following ways:
+        # 1. It needs to have a sdmDataSubsetHeader lxml Element object
+        # representing the sub header.
+        # 2. It needs to have a data attribute which is a dict of numpy
+        # arrays containing the actual data to be written.  It
         tophdr = MIMEHeader()
         tophdr['Content-Type'] = ['multipart/related', 'boundary='+self.mb2]
         tophdr['Content-Description'] = ['data and metadata subset',]
@@ -534,8 +768,16 @@ class BDFWriter(object):
             raise RuntimeError('nxpad(0)<0')
         hdr['X-pad'] = ['*'*nxpad,]
 
-        # Update subhdr with new path
-        subhdr = deepcopy(bdf_int.sdmDataSubsetHeader)
+        # Copy or generate XML sub-header
+        if bdf_int is not None:
+            subhdr = deepcopy(bdf_int.sdmDataSubsetHeader)
+            data = bdf_int.data
+        else:
+            cross = 'crossData' in data.keys()
+            auto = 'autoData' in data.keys()
+            subhdr = _sdmDataSubsetHeader(int(mjd*86400e9), int(interval*1e9), 
+                    cross=cross, auto=auto)
+
         subhdr.attrib['projectPath'] = ppidx
         nsxl = subhdr.nsmap['xl']
         dtypes = []
@@ -558,14 +800,14 @@ class BDFWriter(object):
         nxpad = self.len1 - (len(subhdr_str) + len(mhdr[dtypes[0]].tostring()))
         mhdr[dtypes[0]]['X-pad'] = ['*'*nxpad,]
 
-        # Assumes at most 2 data types.. TODO make more general
+        # Assumes at most 2 data types.. TODO make more general?
         if len(dtypes)>1:
             if self.len2==0:
                 self.len2 = len(mhdr[dtypes[1]].tostring()) + 12
             nxpad = self.len2 - len(mhdr[dtypes[1]].tostring())
             mhdr[dtypes[1]]['X-pad'] = ['*'*nxpad,]
 
-        # TODO could check that data sizes match up with header info..
+        # TODO should check that data sizes match up with header info..
 
         # Now write it all out..
         self.fp.write('--' + self.mb1 + '\n')
@@ -580,7 +822,7 @@ class BDFWriter(object):
         for dtype in dtypes:
             self.fp.write('\n--' + self.mb2 + '\n')
             self.fp.write(mhdr[dtype].tostring() + '\n')
-            self.fp.write(bdf_int.data[dtype])
+            self.fp.write(data[dtype])
 
         # Close out mime
         self.fp.write('\n--' + self.mb2 + '--\n')
