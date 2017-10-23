@@ -672,7 +672,7 @@ class BDFWriter(object):
     """
     Write a BDF file.
     """
-    def __init__(self, fname, bdf=None, start_mjd=None, uid=None, 
+    def __init__(self, path, fname=None, bdf=None, start_mjd=None, uid=None, 
             num_antenna=None, spws=None, scan_idx=None, subscan_idx=1,
             corr_mode=None):
         """Init BDFWrite with output filename (fname).  If the bdf
@@ -688,7 +688,11 @@ class BDFWriter(object):
             subscan_idx: idx of the subscan in the SDM (default 1)
             corr_mode:  'ca' for cross and auto, 'c' for cross, 'a' for auto
         """
-        self.fname = fname
+        if fname is not None:
+            self.fname = os.path.join(path,fname)
+        else:
+            self.fname = os.path.join(path,
+                    uid.translate(string.maketrans(':/','__')))
         self.fp = None
         self.curidx = 1
         self.mb1 = "MIME_boundary-1"
