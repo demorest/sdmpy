@@ -8,13 +8,14 @@ from lxml import etree, objectify
 from operator import attrgetter
 
 from .scan import Scan
-from .mime import MIMEPart, MIMEHeader
+from .mime import MIMEPart
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 _xsd_dir = os.path.join(_install_dir, 'xsd')
 _sdm_xsd = os.path.join(_xsd_dir, 'sdm_all.xsd')
 # Might want to make the schema location settable somehow?
 _sdm_parser = objectify.makeparser(schema=etree.XMLSchema(file=_sdm_xsd))
+
 
 class SDM(object):
     """
@@ -30,19 +31,19 @@ class SDM(object):
 
     SDM['TableName'] returns the relevant SDMTable object.
     """
-    def __init__(self,path='.',use_xsd=True, bdfdir=''):
-        if use_xsd: parser = _sdm_parser
-        else: parser = None
+    def __init__(self, path='.', use_xsd=True, bdfdir=''):
+        parser = _sdm_parser if use_xsd else None
         self._tables = {}
         self._schemaVersion = {}
         self.path = os.path.abspath(path)
+        assert os.path.exists(self.path), 'No SDM at {0}'.format(self.path)
         self.bdfdir = bdfdir
-        self._asdmtree = objectify.parse(path+'/ASDM.xml',parser)
+        self._asdmtree = objectify.parse(path+'/ASDM.xml', parser)
         self.asdm = self._asdmtree.getroot()
         for tab in self.asdm.Table:
             self._schemaVersion[tab.Name] = tab.Entity.attrib['schemaVersion']
             # TODO, compare schema versions, relax parsing if they don't match
-            self._tables[tab.Name] = sdmtable(tab.Name,path,use_xsd=use_xsd)
+            self._tables[tab.Name] = sdmtable(tab.Name, path, use_xsd=use_xsd)
 
     @property
     def tables(self):
