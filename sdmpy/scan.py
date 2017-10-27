@@ -34,6 +34,9 @@ class Scan(object):
         self.idx = str(scanidx)
         self.subidx = str(subscanidx)
         self._bdf = None
+        self.__main = None
+        self.__scan = None
+        self.__subscan = None
 
     @property
     def bdf(self):
@@ -44,17 +47,23 @@ class Scan(object):
     @property
     def _main(self):
         """Convenience interface to the SDM Main table row."""
-        return self.sdm['Main'][(self.idx,self.subidx)]
+        if self.__main is None:
+            self.__main = self.sdm['Main'][(self.idx,self.subidx)]
+        return self.__main
 
     @property
     def _scan(self):
         """Convenience interface to the SDM Scan table row."""
-        return self.sdm['Scan'][self.idx]
+        if self.__scan is None:
+            self.__scan = self.sdm['Scan'][self.idx]
+        return self.__scan
 
     @property
     def _subscan(self):
         """Convenience interface to the SDM Subscan table row."""
-        return self.sdm['Subscan'][(self.idx,self.subidx)]
+        if self.__subscan is None:
+            self.__subscan = self.sdm['Subscan'][(self.idx,self.subidx)]
+        return self.__subscan
 
     @property
     def _config(self):
