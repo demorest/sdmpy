@@ -186,6 +186,18 @@ class Scan(object):
 
         return [float(self.spw(spwn).chanWidth) for spwn in range(len(self.spws))]
 
+    @property
+    def pulsar(self):
+        """ Pulsar row entry, if one exists, otherwise None. """
+        # Note assumes spw 0 right now (in principle could be different
+        # pulsar models per spw).
+        try:
+            dd_id = sdmarray(self._config.dataDescriptionId)[0]
+            psr_id = self.sdm['DataDescription'][dd_id].pulsarId
+            return self.sdm['Pulsar'][psr_id]
+        except AttributeError:
+            return None
+
     def freqs(self,spwidx='all'):
         """ Array of per-channel frequences for the given spectral window.
         If spwidx=='all', a nspw-by-nchan array will be returned giving all
