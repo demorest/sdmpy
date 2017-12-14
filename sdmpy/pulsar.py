@@ -7,9 +7,43 @@
 import os
 import warnings
 import numpy as np
+from .scan import sdmarray
 
 # TODO maybe reconsider this dependency, although the MJD class is convenient
-from psrchive import MJD
+from psrchive import MJD, polyco
+import tempo_utils
+import tempfile
+def sdmpulsar_to_polyco(r,fmt='tempo_utils'):
+    """Takes an SDM Pulsar row, returns a tempo_utils.polyco object."""
+    p = tempo_utils.polyco(None)
+    imjd = int(r.refTime/86400e9)
+    fmjd = (int(r.refTime) - int(imjd*86400e9))/86400e9
+    reffreq = float(r.refPulseFreq)
+    refphase = float(r.refPhase)
+    tspan = float(r.timeSpan)
+    coeffs = sdmarray(r.phasePoly,float)
+
+    p.imjd = imjd
+    p.fmjd = fmjd
+    p.rphase = refphase
+    p.rfreq = reffreq
+    p.site = '6' # assume VLA
+    p.span = tspan/60e9
+    p.ncoeff = len(coeffs)
+    p.obsfreq = 1400.0
+    p.coeffs = list(coeffs)
+
+    if fmt=='tempo_utils':
+        return p
+
+    if fmt=='psrchive':
+        tmp = tempfile.NamedTemporaryFile()
+        tmp.write(p.as_string())
+        tmp.flush()
+        pp = polyco(tmp.name)
+        tmp.close()
+        return pp
+
 
 # The big kludge-pile:
 #_bin_file = "/lustre/aoc/sciops/pdemores/tests/phase_bins/binning_period.dat"
