@@ -18,7 +18,7 @@ _bin_epochs = None   # list of MJDs
 _bin_periods = None  # list of periods (s)
 _mjd1970 = 40587
 _clk_per_sec = long(64000000)
-_clk_per_day = _clk_per_sec * 86400L
+_clk_per_day = _clk_per_sec * long(86400)
 
 def _get_epoch_period(mjd):
     """Get the closest binning reference epoch and period for a specified
@@ -50,7 +50,7 @@ class BinLog(object):
 
     _mjd1970 = 40587
     _clk_per_sec = long(64000000)
-    _clk_per_day = _clk_per_sec * 86400L
+    _clk_per_day = _clk_per_sec * long(86400)
 
     def __init__(self, sdmname, 
             logdir='/lustre/aoc/sciops/pdemores/binlogs'):
