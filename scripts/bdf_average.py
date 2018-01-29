@@ -34,9 +34,7 @@ os.mkdir(bdfoutpath)
 
 for scan in sdm.scans():
     print "Processing '%s' scan %s:" % (sdmname, scan.idx)
-    try:
-        bdf = scan.bdf
-    except IOError:
+    if scan.bdf.fp is None:
         print "Error reading bdf for scan %s, skipping" % (scan.idx,)
         continue
     # TODO maybe rename BDFs...
