@@ -37,6 +37,9 @@ for scan in sdm.scans():
     if scan.bdf.fp is None:
         print "Error reading bdf for scan %s, skipping" % (scan.idx,)
         continue
+
+    bdf = scan.bdf
+
     # TODO maybe rename BDFs...
     # Also this assumes averaging time is the same during the whole
     # BDF.  This is always true for VLA data.
