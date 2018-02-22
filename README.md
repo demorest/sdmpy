@@ -28,6 +28,7 @@ information.
 ---------------------------------------------------------------------
 Example ipython session illustrating use of the SDM class:
 
+```
 In [1]: import sdmpy
 
 In [2]: s = sdmpy.SDM('15A-105_sb30463808_1.57082.53091797454')
@@ -84,7 +85,7 @@ J1909-3744
 
 In [7]: len(s['Main'])
 Out[7]: 24
-
+```
 
 ---------------------------------------------------------------------
 ipython session showing use of the BDF class to access visibility data.
@@ -92,6 +93,7 @@ Note that this has been developed mainly for VLA/WIDAR data and is
 likely not complete for use with ALMA data.  Example usage (see
 docstrings for more info):
 
+```
 In [1]: import sdmpy
 
 In [2]: b = sdmpy.BDF('uid____evla_bdf_1433189755525')
@@ -149,11 +151,12 @@ array([ -1.92527496e-03+0.00236825j,  -1.01333787e-03-0.0019273j ,
          1.09594746e-03+0.00397917j,  -2.94885552e-03-0.00085458j,
          7.17548071e-04-0.00044755j,  -2.99423118e-05-0.00164009j,
          1.18584884e-03+0.00028139j,  -5.73034631e-04+0.00078536j], dtype=complex64)
-
+```
 
 ---------------------------------------------------------------------
 ipython session showing use of the Scan class:
 
+```
 In [1]: import sdmpy
 
 In [2]: sdm = sdmpy.SDM('16B-248_TEST_L.57686.804786203706')
@@ -192,11 +195,12 @@ Out[6]: 57686.808208912036
 In [7]: b = s.bdf        # Get BDF object for this scan
 
 In [8]: d = b.get_data() # Read full visibility data array for the scan
-
+```
 
 ---------------------------------------------------------------------
 ipython session showing how to read the SysPower table:
 
+```
 In [1]: import sdmpy
 
 In [2]: import sdmpy.bintab
@@ -217,5 +221,4 @@ rec.array([ ('Antenna_12', 'SpectralWindow_0', 0, 5010745004500000768, 100000051
  ('Antenna_7', 'SpectralWindow_6', 0, 5010752180500000768, 1000000512, 2, [ 0.270816  ,  0.28408101], [ 20.47394753,  22.51699257], [ 0.020782,  0.022675]),
  ('Antenna_7', 'SpectralWindow_7', 0, 5010752180500000768, 1000000512, 2, [ 0.31178999,  0.27066699], [ 22.78490829,  22.75772285], [ 0.021698,  0.021759])],
           dtype=[('antennaId', 'S32'), ('spectralWindowId', 'S32'), ('feedId', '<i4'), ('timeMid', '<i8'), ('interval', '<i8'), ('numReceptor', '<i4'), ('switchedPowerDifference', '<f4', (2,)), ('switchedPowerSum', '<f4', (2,)), ('requantizerGain', '<f4', (2,))])
-
-
+```
