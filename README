@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/realfastvla/sdmpy.svg?branch=master)](https://travis-ci.org/realfastvla/sdmpy)
+
 sdmpy -- P. Demorest, 2015/03
 
 Simple classes for reading VLA/ALMA Science Data Model (SDM) XML and
