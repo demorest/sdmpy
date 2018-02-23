@@ -7,6 +7,7 @@ import numpy
 
 # Contains code for unpacking data from SDM binary tables.
 
+
 def unpacker(sdmtable):
     """Return an appropriate unpacker given an SDMBinaryTable object."""
     # Could do something more fancy with a registry, etc but it's probably
@@ -16,10 +17,11 @@ def unpacker(sdmtable):
     else:
         raise RuntimeError("Unknown binary table type: '%s'" % sdmtable.name)
 
+
 class BinaryTableUnpacker(object):
     """Base class for SDM binary table unpackers.  This should not be called
     directly, because it needs a column data structure definition in order
-    to be useful.  This is implemented in derived classes, e.g. 
+    to be useful.  This is implemented in derived classes, e.g.
     SysPowerUnpacker for the SysPower table."""
 
     # Unpackers for various binary data types
@@ -31,21 +33,21 @@ class BinaryTableUnpacker(object):
     # below for an example.
     columns = []
 
-    def __init__(self,sdmtable):
-        self._sdmtable = sdmtable # The original SDMBinaryTable object
-        self._pos = 0 # Pointer to current position within the table
+    def __init__(self, sdmtable):
+        self._sdmtable = sdmtable  # The original SDMBinaryTable object
+        self._pos = 0  # Pointer to current position within the table
         # Read the entity stuff at the start of the table, then
         # record the start of row data.  Just use tuples for the
-        # entity things now, until building a better entity data 
+        # entity things now, until building a better entity data
         # structure seems worthwhile.
         self.table_entity = tuple(self._get_val('S') for i in range(5))
         self.container_entity = tuple(self._get_val('S') for i in range(5))
-        self.nrows = self._get_val('i4') # -1 in all data I've looked at...
+        self.nrows = self._get_val('i4')  # -1 in all data I've looked at...
         self._pos0 = self._pos
         self.row = []
 
-    def _readtab(self,nbytes):
-        # Read/return nbytes from the table, and increment the 
+    def _readtab(self, nbytes):
+        # Read/return nbytes from the table, and increment the
         # position marker.
         result = self._sdmtable.get_bytes(self._pos, nbytes)
         if len(result) != nbytes:
@@ -53,18 +55,18 @@ class BinaryTableUnpacker(object):
         self._pos += nbytes
         return result
 
-    def _get_val(self,dtype,optional=False,array=False):
+    def _get_val(self, dtype, optional=False, array=False):
         # Unpack one value of the specified type from the table,
         # and advance the position pointer appropriately.  dtype
         # uses values compatible with numpy, ie i4, f4, etc.
         string_val = False
-        if dtype=='i4':
+        if dtype == 'i4':
             unpack = self._unpack_int
-        elif dtype=='i8':
+        elif dtype == 'i8':
             unpack = self._unpack_long
-        elif dtype=='f4':
+        elif dtype == 'f4':
             unpack = self._unpack_float
-        elif dtype[0]=='S':
+        elif dtype[0] == 'S':
             unpack = None
             string_val = True
         else:
@@ -72,11 +74,11 @@ class BinaryTableUnpacker(object):
         try:
             if optional:
                 has_data = self._readtab(1) != '\0'
-                if not has_data: 
+                if not has_data:
                     # Return some default values..
-                    if string_val: 
+                    if string_val:
                         return ''
-                    else: 
+                    else:
                         return 0
             if array or string_val:
                 nval = self._unpack_int.unpack_from(self._readtab(4))[0]
@@ -97,7 +99,7 @@ class BinaryTableUnpacker(object):
     def record_dtype(self):
         return [(col[0], col[2], col[3]) for col in self.columns]
 
-    def _blank_row(self,nrows=1):
+    def _blank_row(self, nrows=1):
         return numpy.zeros(nrows, dtype=self.record_dtype)
 
     def _unpack_row(self):
@@ -110,8 +112,9 @@ class BinaryTableUnpacker(object):
             isoptional = col[1]
             coldtype = col[2]
             isarray = col[3] != ()
-            val = self._get_val(coldtype,isoptional,isarray)
-            if val is None: return None
+            val = self._get_val(coldtype, isoptional, isarray)
+            if val is None:
+                return None
             if isarray:
                 row[0][colname][:len(val)] = val
             else:
@@ -121,7 +124,7 @@ class BinaryTableUnpacker(object):
     def iterrows(self):
         # Iterator over rows.  May or may not make sense to expose this
         # since everything is probably faster on the full unpacked array..
-        self._pos = self._pos0 # reset to start
+        self._pos = self._pos0  # reset to start
         more_data = True
         while more_data:
             row = self._unpack_row()
@@ -131,21 +134,23 @@ class BinaryTableUnpacker(object):
                 yield row
 
     def unpack(self):
-        self.row = numpy.recarray(1000,dtype=self.record_dtype)
+        self.row = numpy.recarray(1000, dtype=self.record_dtype)
         irow = 0
         for row in self.iterrows():
-            if irow==len(self.row):
+            if irow == len(self.row):
                 self.row = numpy.rec.array(
                         numpy.resize(self.row, int(len(self.row)*1.2))
                         )
             self.row[irow] = row
             irow += 1
-        self.row = numpy.rec.array(numpy.resize(self.row,irow))
+        self.row = numpy.rec.array(numpy.resize(self.row, irow))
+
 
 class SysPowerUnpacker(BinaryTableUnpacker):
     """Unpacker for the SysPower binary table.  Currently makes some
-    assumptions like there never being more than 2 measurements in 
-    the array-valued columns.  This is true for now for the VLA."""
+    assumptions like there never being more than 2 measurements in
+    the array-valued columns.  This is true for now for the VLA.
+    """
 
     # Define columns using tuples like:
     #   (colname, optional, dtype, array_dims)
@@ -154,6 +159,7 @@ class SysPowerUnpacker(BinaryTableUnpacker):
     # should be recognized by numpy.recarray dtype argument.  This means
     # we need to specify an array dimension here.  array_dims should be set
     # to () for scalar columns.
+
     columns = [
             ("antennaId",        False, 'S32', ()),
             ("spectralWindowId", False, 'S32', ()),
