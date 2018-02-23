@@ -23,12 +23,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# TODO find a better way to get the namespace automatically?
+_ns = '{http://Alma/XASDM/sdmbin}'
+
+
 def basename_noext(path):
     return os.path.basename(os.path.splitext(path)[0])
 
 
-# TODO find a better way to get the namespace automatically?
-_ns = '{http://Alma/XASDM/sdmbin}'
 def _stripns(tag):
     return re.sub('{.+}', '', tag)
 
@@ -41,13 +43,13 @@ def ant2bl(i, j=None):
     else:
         (a1, a2) = sorted((i, j))
     # could raise error if a2==a1, either are negative, etc
-    return (a2*(a2-1))/2 + a1
+    return (a2*(a2-1))//2 + a1
 
 
 def bl2ant(i):
     """Returns antenna pair for given baseline index.  All are 0-based."""
     a2 = int(0.5*(1.0+math.sqrt(1.0+8.0*i)))
-    a1 = i - a2*(a2-1)/2
+    a1 = i - a2*(a2-1)//2
     return a1, a2
 
 
@@ -146,7 +148,7 @@ class BDF(object):
                                            recurse=True),]
             # Compute size of each integration section:
                 self.size_ints = self.fp.tell() - self.offset_ints
-                numints = int((os.path.getsize(self.fname)-self.offset_ints)/self.size_ints)
+                numints = int((os.path.getsize(self.fname)-self.offset_ints)//self.size_ints)
                 self.mime_ints += [None, ]*(numints-1)
 
             # This is the more general way to do it that does not assume
@@ -193,7 +195,7 @@ class BDF(object):
 
     @property
     def numBaseline(self):
-        return (self.numAntenna*(self.numAntenna-1))/2
+        return (self.numAntenna*(self.numAntenna-1))//2
 
     @property
     def startTime(self):
@@ -631,7 +633,7 @@ def _sdmDataHeader(time, uid, num_antenna, spws, path='0/1/1', cross=True,
         bb.append(s.to_xml())
         auto_size += s.dsize('auto')
         cross_size += s.dsize('cross')
-    num_baseline = num_antenna * (num_antenna-1) / 2
+    num_baseline = num_antenna * (num_antenna-1) // 2
     auto_size *= num_antenna
     cross_size *= 2.0 * num_baseline
     if cross:
