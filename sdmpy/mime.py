@@ -1,6 +1,9 @@
-#! /usr/bin/env python
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
-# mime.py -- PBD 2016/04
+import string
+from collections import OrderedDict
 
 # This class provdes MIME-parsing functionality suitable for reading
 # EVLA/ALMA Binary Data Format (BDF) files, and SDM binary tables.  It
@@ -8,8 +11,6 @@
 # contents of binary type are not returned directed, rather an offset
 # into the file is given.
 
-import string
-from collections import OrderedDict
 
 class MIMEHeader(OrderedDict):
     # MIMEHeader is a dict with keys equal to the mime header keywords
@@ -37,13 +38,13 @@ class MIMEHeader(OrderedDict):
         if line.startswith('\t'):
             # Since we are using OrderedDict, can get the most recently
             # added key.
-            key = self.keys()[-1]
-            vals = map(string.strip, line[1:].split(';'))
+            key = list(self.keys())[-1]
+            vals = list(map(string.strip, line[1:].split(';')))
             self[key].extend(vals)
         else:
             idx = line.index(':')
             key = line[:idx]
-            vals = map(string.strip, line[idx+1:].split(';'))
+            vals = list(map(string.strip, line[idx+1:].split(';')))
             self[key] = vals
 
     @staticmethod
@@ -58,10 +59,10 @@ class MIMEHeader(OrderedDict):
         otherwise the full header will be returned.
         """
         if key is not None:
-            return self._asline(key,self[key])
+            return self._asline(key, self[key])
         else:
             out = ''
-            for k in self.keys():
+            for k in list(self.keys()):
                 out += self._asline(k,self[k])
             return out
 
@@ -166,8 +167,8 @@ class MIMEPart(object):
                     # if the bin_name is unknown, we read the data
                     # until the boundary marker is found to determine
                     # the size.
-                    if ((binary_size is None) 
-                            or (bin_name not in binary_size.keys())):
+                    if ((binary_size is None)
+                            or (bin_name not in list(binary_size.keys()))):
                         #raise RuntimeError("Unknown binary type '%s' found"
                         #        % bin_name)
                         bl = len(boundary)+2 # length of boundary string

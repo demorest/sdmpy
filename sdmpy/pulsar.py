@@ -1,8 +1,6 @@
-#! /usr/bin/env python
-
-# pulsar.py -- PBD 2016/08
-
-# Routines to support pulsar binned/gated SDM data
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input, int #, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import os
 import warnings
@@ -17,12 +15,15 @@ _bin_file = "/home/mchost/evla/scripts/opt/2016/09/16B-248/polyco/16B-248.period
 _bin_epochs = None   # list of MJDs
 _bin_periods = None  # list of periods (s)
 _mjd1970 = 40587
-_clk_per_sec = long(64000000)
-_clk_per_day = _clk_per_sec * long(86400)
+_clk_per_sec = int(64000000)
+_clk_per_day = _clk_per_sec * int(86400)
+
+# Routines to support pulsar binned/gated SDM data
+
 
 def _get_epoch_period(mjd):
     """Get the closest binning reference epoch and period for a specified
-    MJD.  This is kind of a hack until this info is stored properly in the 
+    MJD.  This is kind of a hack until this info is stored properly in the
     SDM.  Returns a tuple (epoch, period, diff)"""
     global _bin_epochs, _bin_periods
     if _bin_epochs is None:
@@ -32,7 +33,7 @@ def _get_epoch_period(mjd):
             #_bin_epochs += [MJD(l.split()[0]),]
             #_bin_periods += [float(l.split()[1]),]
             if l.startswith('epoch '):
-                epoch_clk = long(l.split()[1])
+                epoch_clk = int(l.split()[1])
                 mjd_int = epoch_clk/_clk_per_day + _mjd1970
                 mjd_frac = (epoch_clk%_clk_per_day)/float(_clk_per_day)
             elif l.startswith('target period '):
@@ -49,8 +50,8 @@ def _get_epoch_period(mjd):
 class BinLog(object):
 
     _mjd1970 = 40587
-    _clk_per_sec = long(64000000)
-    _clk_per_day = _clk_per_sec * long(86400)
+    _clk_per_sec = int(64000000)
+    _clk_per_day = _clk_per_sec * int(86400)
 
     def __init__(self, sdmname, 
             logdir='/lustre/aoc/sciops/pdemores/binlogs'):
@@ -74,7 +75,7 @@ class BinLog(object):
             (_sdmname, _idx, _epoch_clk, _period_us, _period_clk) = l.split()
             if _sdmname != self.sdmname: continue
             self.scanidx.append(_idx)
-            self.epoch.append(self._clk_to_mjd(long(_epoch_clk)))
+            self.epoch.append(self._clk_to_mjd(int(_epoch_clk)))
             self.period.append(float(_period_clk)/float(self._clk_per_sec))
 
     def epoch_period(self, mjd):

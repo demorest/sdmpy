@@ -1,14 +1,6 @@
-#! /usr/bin/env python
-
-# bdf.py -- PBD 2015/06
-
-# This class provides access to EVLA/ALMA Binary Data Format (BDF)
-# files.  The approach used here is based loosely on 'bdfparse.py' 
-# originally by Peter Williams.  So far this is somewhat targeted
-# to EVLA/WIDAR data files, it may not handle all the ALMA variants.
-
-import logging
-logger = logging.getLogger(__name__)
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import os
 import sys
@@ -27,29 +19,42 @@ except ImportError:
 
 from .mime import MIMEPart, MIMEHeader
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 def basename_noext(path):
     return os.path.basename(os.path.splitext(path)[0])
+
 
 # TODO find a better way to get the namespace automatically?
 _ns = '{http://Alma/XASDM/sdmbin}'
 def _stripns(tag):
-    return re.sub('{.+}','',tag)
+    return re.sub('{.+}', '', tag)
 
-def ant2bl(i,j=None):
+
+def ant2bl(i, j=None):
     """Returns baseline index for given antenna pair.  Will accept
     two args, or a list/tuple/etc.  Uses 0-based indexing"""
     if j is None:
-        (a1,a2) = sorted(i[:2])
+        (a1, a2) = sorted(i[:2])
     else:
-        (a1,a2) = sorted((i,j))
+        (a1, a2) = sorted((i, j))
     # could raise error if a2==a1, either are negative, etc
     return (a2*(a2-1))/2 + a1
+
 
 def bl2ant(i):
     """Returns antenna pair for given baseline index.  All are 0-based."""
     a2 = int(0.5*(1.0+math.sqrt(1.0+8.0*i)))
     a1 = i - a2*(a2-1)/2
     return a1, a2
+
+
+# This class provides access to EVLA/ALMA Binary Data Format (BDF)
+# files.  The approach used here is based loosely on 'bdfparse.py'
+# originally by Peter Williams.  So far this is somewhat targeted
+# to EVLA/WIDAR data files, it may not handle all the ALMA variants.
 
 class BDF(object):
     """
@@ -82,8 +87,8 @@ class BDF(object):
             self.read_mime()
             self.parse_spws()
 
-    # Size in bytes of each data element. In principle, the crossData 
-    # type needs to be read from the headers while all others have 
+    # Size in bytes of each data element. In principle, the crossData
+    # type needs to be read from the headers while all others have
     # pre-set values...
     bin_dtype_size = {
             'flags':           4, # INT32
@@ -104,27 +109,27 @@ class BDF(object):
 
     @property
     def exists(self):
-        return self.fp != None
+        return self.fp is not None
 
-    def read_mime(self,full_read=False):
+    def read_mime(self, full_read=False):
         if self.fp:
-            self.fp.seek(0,0) # Go back to start
+            self.fp.seek(0, 0)  # Go back to start
             if not self.fp.readline().startswith('MIME-Version:'):
                 raise RuntimeError('Invalid BDF: missing MIME-Version')
 
             # First we need to read and parse only the main XML header in order
-            # to get sizes of the binary parts.  Note, the info stored in 
+            # to get sizes of the binary parts.  Note, the info stored in
             # self.bin_size is in bytes, rather than the weird BDF units.
             mime_hdr = MIMEPart(self.fp).hdr
             self.top_mime_bound = mime_hdr.boundary
-            sdmDataMime = MIMEPart(self.fp,boundary=self.top_mime_bound)
+            sdmDataMime = MIMEPart(self.fp, boundary=self.top_mime_bound)
             if sdmDataMime.loc != 'sdmDataHeader.xml':
                 raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')
             self.sdmDataHeader = objectify.fromstring(sdmDataMime.body)
             self.bin_size = {}
             self.bin_axes = {}
             for e in self.sdmDataHeader.iter():
-                if 'size' in e.attrib.keys() and 'axes' in e.attrib.keys():
+                if 'size' in list(e.attrib.keys()) and 'axes' in list(e.attrib.keys()):
                     binname = _stripns(e.tag)
                     self.bin_size[binname] = int(e.attrib['size']) \
                         * self.bin_dtype_size[binname]
@@ -134,7 +139,7 @@ class BDF(object):
             # in order to determine the size, then seek to each integration as
             # requested, rather than parsing the whole file here.
             if 'EVLA' in mime_hdr['Content-Description'][0] and not full_read:
-                self.offset_ints = self.fp.tell() # Offset in file to first integ
+                self.offset_ints = self.fp.tell()  # Offset in file to first integ
                 self.mime_ints = [MIMEPart(self.fp,
                                            boundary=self.top_mime_bound,
                                            binary_size=self.bin_size,
@@ -142,14 +147,14 @@ class BDF(object):
             # Compute size of each integration section:
                 self.size_ints = self.fp.tell() - self.offset_ints
                 numints = int((os.path.getsize(self.fname)-self.offset_ints)/self.size_ints)
-                self.mime_ints += [None,]*(numints-1)
+                self.mime_ints += [None, ]*(numints-1)
 
             # This is the more general way to do it that does not assume
-            # each integration (including XML and MIME headers) has the 
-            # same size in the file.  In this case, go back to the beginning 
+            # each integration (including XML and MIME headers) has the
+            # same size in the file.  In this case, go back to the beginning
             # and parse the whole MIME structure to map it out.
             else:
-                self.fp.seek(0,0) # reset to start again
+                self.fp.seek(0, 0)  # reset to start again
                 full_mime = MIMEPart(self.fp,
                                      recurse=True, binary_size=self.bin_size)
                 self.mime_ints = full_mime.body[1:]
@@ -157,14 +162,16 @@ class BDF(object):
             logger.warn('No BDF file found at {0}'.format(self.fname))
 
 
-    def _raw(self,idx):
+    def _raw(self, idx):
         if self.fp:
-            if self.mime_ints[idx] is not None: return self.mime_ints[idx]
+            if self.mime_ints[idx] is not None:
+                    return self.mime_ints[idx]
+
             # Need to read this one
             self.fp.seek(self.offset_ints + idx*self.size_ints, 0)
             #self.mime_ints[idx] = self.read_mime_part(boundary=self.top_mime_bound,recurse=True)
-            self.mime_ints[idx] = MIMEPart(self.fp, 
-                                           boundary=self.top_mime_bound, 
+            self.mime_ints[idx] = MIMEPart(self.fp,
+                                           boundary=self.top_mime_bound,
                                            binary_size=self.bin_size,
                                            recurse=True)
             return self.mime_ints[idx]
@@ -206,27 +213,27 @@ class BDF(object):
             self.basebands.append(bbname)
             for spw_elem in bb.spectralWindow:
                 # Build a list of spectral windows for each baseband
-                spw = BDFSpectralWindow(spw_elem,cross_offset,auto_offset)
+                spw = BDFSpectralWindow(spw_elem, cross_offset, auto_offset)
                 cross_offset += spw.dsize('cross')
                 auto_offset += spw.dsize('auto')
                 self.spws.append(spw)
 
-    def get_integration(self,idx):
-        return BDFIntegration(self,idx)
+    def get_integration(self, idx):
+        return BDFIntegration(self, idx)
 
-    def __getitem__(self,idx):
+    def __getitem__(self, idx):
         return self.get_integration(idx)
 
-    def zerofraction(self,spwidx='all',type='cross'):
+    def zerofraction(self, spwidx='all', type='cross'):
         """Return zero fraction for the entire BDF.  This is done by loading
         each integration's data so may take a while."""
         tot = 0.0
-        for i in self: 
-            tot += i.zerofraction(spwidx,type)
+        for i in self:
+            tot += i.zerofraction(spwidx, type)
         return tot / self.numIntegration
 
-    def get_data(self,spwidx='all',type='cross',scrunch=False,
-            fscrunch=False,frange=None,trange=None,bar=False):
+    def get_data(self, spwidx='all', type='cross', scrunch=False,
+                 fscrunch=False, frange=None, trange=None, bar=False):
         """Returns an array containing all integrations for the specified
         spw and data type.  Takes a number of options:
 
@@ -237,13 +244,13 @@ class BDF(object):
           bar: if True and the progressbar package is available, display
             a progress bar as data are loaded.
 
-        If spwidx=='all' and no averaging was requested, then the dimensions 
-        of the returned array are: (time, baseline/antenna, spw, bin, channel, 
+        If spwidx=='all' and no averaging was requested, then the dimensions
+        of the returned array are: (time, baseline/antenna, spw, bin, channel,
         polarization).  If a single spw is selected, the spw axis is omitted.
         If time and/or freq averaging is selected, the time and/or channel
         axes are omitted.
         """
-        chidx = -2 # index of spectral channels
+        chidx = -2  # index of spectral channels
         # Figure out ranges:
         if trange is None:
             i0 = 0
@@ -253,42 +260,45 @@ class BDF(object):
             i1 = trange[1]
         # Read first integration to get shapes, etc
         nsubout = i1 - i0
-        subdat = self.get_integration(i0).get_data(spwidx,type)
+        subdat = self.get_integration(i0).get_data(spwidx, type)
         if scrunch:
             dshape = subdat.shape
         else:
             dshape = (nsubout,) + subdat.shape
         if fscrunch:
             dshape = dshape[:chidx] + dshape[chidx+1:]
-        result = numpy.zeros(dshape,dtype=subdat.dtype)
+        result = numpy.zeros(dshape, dtype=subdat.dtype)
         if bar and ProgressBar is not None:
             b = ProgressBar()
         else:
             b = lambda x: x
-        for i in b(range(i0,i1)):
+        for i in b(list(range(i0, i1))):
             if fscrunch:
                 if frange is None:
-                    dat = self.get_integration(i).get_data(spwidx,type).mean(chidx)
+                    dat = self.get_integration(i).get_data(spwidx, type).mean(chidx)
                 else:
-                    dat = self.get_integration(i).get_data(spwidx,type).take(range(*frange),axis=chidx).mean(chidx)
+                    dat = self.get_integration(i).get_data(spwidx,
+                                                           type).take(list(range(*frange)),
+                                                                      axis=chidx).mean(chidx)
             else:
-                dat = self.get_integration(i).get_data(spwidx,type)
+                dat = self.get_integration(i).get_data(spwidx, type)
             if scrunch:
                 result += dat
             else:
                 result[i-i0] = dat
-        if scrunch: 
+        if scrunch:
             result /= float(nsubout)
         return result
 
+
 class BDFSpectralWindow(object):
     """Class that represents spectral window information present in BDF files,
-    including storing appropriate offsets into the main data array.  Should be 
-    initialized from the spectralWindow XML element from the main BDF 
+    including storing appropriate offsets into the main data array.  Should be
+    initialized from the spectralWindow XML element from the main BDF
     header.
-    
+
     Alternatively, a BDFSpectralWindow can be generated directly without
-    reference to an existing XML element.  In this case, the following 
+    reference to an existing XML element.  In this case, the following
     arguments should be filled in appropriately (names are same as in XML):
         numBin
         numSpectralPoint
@@ -305,8 +315,8 @@ class BDFSpectralWindow(object):
     # <spectralWindow sw="1" swbb="AC_8BIT" sdPolProducts="RR RL LL" crossPolProducts="RR RL LR LL" numSpectralPoint="64" numBin="40" scaleFactor="1.000000" sideband="NOSB"/>
 
     def __init__(self, spw_elem, cross_offset=None, auto_offset=None,
-            numBin=None, numSpectralPoint=None, sw=None, swbb=None,
-            npol=None):
+                 numBin=None, numSpectralPoint=None, sw=None, swbb=None,
+                 npol=None):
         if spw_elem is not None:
             self._attrib = spw_elem.attrib
         else:
@@ -316,10 +326,10 @@ class BDFSpectralWindow(object):
             self._attrib['numSpectralPoint'] = '%d' % numSpectralPoint
             self._attrib['sw'] = '%d' % sw
             self._attrib['swbb'] = str(swbb)
-            if npol==4:
+            if npol == 4:
                 self._attrib['sdPolProducts'] = 'RR RL LL'
                 self._attrib['crossPolProducts'] = 'RR RL LR LL'
-            elif npol==2:
+            elif npol == 2:
                 self._attrib['sdPolProducts'] = 'RR LL'
                 self._attrib['crossPolProducts'] = 'RR LL'
             else:
@@ -336,7 +346,7 @@ class BDFSpectralWindow(object):
         # Note this returns a standalone xml Element, _not_ a reference to
         # the original document structure that this was derived from.
         result = etree.Element('spectralWindow')
-        for k,v in self._attrib.items():
+        for k, v in list(self._attrib.items()):
             result.attrib[k] = v
         return result
 
@@ -362,44 +372,47 @@ class BDFSpectralWindow(object):
     def name(self):
         return self.swbb + '-' + str(self.sw)
 
-    def npol(self,type):
+    def npol(self, type):
         """Return number of polarization array elements for the given data
         type (cross or auto)."""
         try:
-            if type[0].lower()=='c':
+            if type[0].lower() == 'c':
                 return len(self._attrib['crossPolProducts'].split())
-            elif type[0].lower()=='a':
+            elif type[0].lower() == 'a':
                 # Good enough?
                 l = len(self._attrib['sdPolProducts'].split())
-                return 4 if l==3 else l # 3==4 in BDF math! :)
+                return 4 if l == 3 else l  # 3==4 in BDF math! :)
         except KeyError:
             return 0
 
-    def dshape(self,type):
-        """Return shape tuple of data array for this spectral window, 
-        in number of data elements (real for auto, complex for cross)."""
+    def dshape(self, type):
+        """Return shape tuple of data array for this spectral window,
+        in number of data elements (real for auto, complex for cross).
+        """
+
         return (self.numBin, self.numSpectralPoint, self.npol(type))
 
-    def dsize(self,type):
+    def dsize(self, type):
         """Return size of data array for this spectral window, in number of
         data elements (real for auto, complex for cross)."""
         return numpy.product(self.dshape(type))
 
     @staticmethod
-    def dims_match(spwlist,type):
+    def dims_match(spwlist, type):
         """Given a list of BDFSpectralWindow objects, return true if all
         of them have consistent array dimensions."""
-        if len(spwlist)==1: 
+        if len(spwlist) == 1:
             return True
         for spw in spwlist[1:]:
             if spwlist[0].dshape(type) != spw.dshape(type):
                 return False
         return True
 
+
 class BDFIntegration(object):
     """
     Describes and holds data for a single intgration within a BDF file.
-    This should be derived from an existing BDF object using 
+    This should be derived from an existing BDF object using
     get_integration() or indexing, ie:
 
         b = bdf.BDF('some_file')
@@ -408,7 +421,7 @@ class BDFIntegration(object):
         i = b.get_integration(5)
         i = b[5]
 
-        # Read the cross-corr data array for spectral window 0 
+        # Read the cross-corr data array for spectral window 0
         dat = i.get_data(0)
 
     Other potentially useful info:
@@ -421,7 +434,7 @@ class BDFIntegration(object):
 
     """
 
-    def __init__(self,bdf,idx):
+    def __init__(self, bdf, idx):
         # Get the main header
         self.sdmDataSubsetHeader = objectify.fromstring(
                 bdf._raw(idx).body[0].body)
@@ -435,22 +448,22 @@ class BDFIntegration(object):
         self.data = {}
         for m in bdf._raw(idx).body[1:]:
             btype = basename_noext(m.loc)
-            bsize = bdf.bin_size[btype] # size of the binary blob in bytes
+            bsize = bdf.bin_size[btype]  # size of the binary blob in bytes
             baxes = self.bin_axes[btype]
             # Determine outer step size for the array, either baselines
             # antennas of baseline+antenna.  We can't apply the other
             # dimensions here because the number of elements can vary
             # per spw.
-            if baxes[0]=='BAL' and baxes[1]=='ANT':
-                shape=(self.numBaseline+self.numAntenna,-1)
-            elif baxes[0]=='BAL':
-                shape=(self.numBaseline,-1)
-            elif baxes[0]=='ANT':
-                shape=(self.numAntenna,-1)
+            if baxes[0] == 'BAL' and baxes[1] == 'ANT':
+                shape = (self.numBaseline+self.numAntenna, -1)
+            elif baxes[0] == 'BAL':
+                shape = (self.numBaseline, -1)
+            elif baxes[0] == 'ANT':
+                shape = (self.numAntenna, -1)
             else:
-                shape=(-1,) # Don't know what to do, just leave flat array
+                shape = (-1,)  # Don't know what to do, just leave flat array
             self.data[btype] = numpy.frombuffer(bdf.mmdata[m.body:m.body+bsize],
-                    dtype=bdf.bin_dtype[btype]).reshape(shape)
+                                                dtype=bdf.bin_dtype[btype]).reshape(shape)
 
     @property
     def projectPath(self):
@@ -464,7 +477,7 @@ class BDFIntegration(object):
     def interval(self):
         return float(self.sdmDataSubsetHeader.schedulePeriodTime.interval)*1e-9
 
-    def get_data(self,spwidx='all',type='cross'):
+    def get_data(self, spwidx='all', type='cross'):
         """
         Return the data array for the given subset.  Inputs are:
 
@@ -477,46 +490,48 @@ class BDFIntegration(object):
         windows match, all will be returned in a single array.  In this case
         the returned dimensions will be (nBl/nAnt, nSpw, nBin, nSpp, nPol).
         """
-        if type[0].lower()=='c': 
+        if type[0].lower() == 'c':
             loc = 'crossData'
-        elif type[0].lower()=='a': 
+        elif type[0].lower() == 'a':
             loc = 'autoData'
         else:
             raise RuntimeError('Unsupported data type')
-        if spwidx=='all':
-            if not BDFSpectralWindow.dims_match(self.spws,type):
+        if spwidx == 'all':
+            if not BDFSpectralWindow.dims_match(self.spws, type):
                 raise RuntimeError('BDFIntegration: ' +
-                        'mixed array dimensions, spws must be ' +
-                        'retrieved indivdually')
+                                   'mixed array dimensions, spws must be ' +
+                                   'retrieved indivdually')
             dshape = (-1, len(self.spws)) + self.spws[0].dshape(type)
             return self.data[loc].reshape(dshape)
         spw = self.spws[spwidx]
-        if loc == 'crossData': 
+        if loc == 'crossData':
             offs = spw.cross_offset
-        elif loc == 'autoData': 
+        elif loc == 'autoData':
             offs = spw.auto_offset
         else:
             raise RuntimeError('Unsupported data type')
         dsize = spw.dsize(type)
         dshape = (-1,) + spw.dshape(type)
-        return self.data[loc][:,offs:offs+dsize].reshape(dshape)
+        return self.data[loc][:, offs:offs+dsize].reshape(dshape)
 
-    def zerofraction(self,spwidx='all',type='cross'):
+    def zerofraction(self, spwidx='all', type='cross'):
         """Returns the fraction of data points in the integration that
         are exactly zero (generally this means they have been flagged
-        or otherwise not recorded by the online systems).  
+        or otherwise not recorded by the online systems).
 
         Note that for WIDAR autocorrelation data, the default is to only
-        record half the antennas so will typically have ~50% zeros 
+        record half the antennas so will typically have ~50% zeros
         according to this function."""
-        if type[0].lower()=='c': 
+
+        if type[0].lower() == 'c':
             loc = 'crossData'
-        elif type[0].lower()=='a': 
+        elif type[0].lower() == 'a':
             loc = 'autoData'
-        if spwidx=='all':
+
+        if spwidx == 'all':
             dtmp = self.data[loc].ravel()
         else:
-            dtmp = self.get_data(spwidx=spwidx,type=type).ravel()
+            dtmp = self.get_data(spwidx=spwidx, type=type).ravel()
         return float(len(dtmp) - numpy.count_nonzero(dtmp))/float(len(dtmp))
 
 # Notes for generating BDFs from scratch:
@@ -544,20 +559,23 @@ class BDFIntegration(object):
 #</sdmDataHeader>
 
 # Build a sdmDataHeader from scratch
-_nsmap_hdr =  {
+_nsmap_hdr = {
         'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         'xl': 'http://www.w3.org/1999/xlink',
         'xv': 'http://Alma/XVERSION',
         None: 'http://Alma/XASDM/sdmbin'
         }
-def _sdmDataHeader(time,uid,num_antenna,spws,path='0/1/1',cross=True,auto=True):
+
+
+def _sdmDataHeader(time, uid, num_antenna, spws, path='0/1/1', cross=True,
+                   auto=True):
     """Generate a sdmDataHeader XML element from the specified parameters:
         time: start time in SDM format (MJD ns)
         uid: unique ID for the BDF
         num_antenna: number of antennas in the data
         spws: list of BDFSpectralWindow objects; order matters!
     """
-    _E = objectify.ElementMaker(annotate=False,nsmap=_nsmap_hdr)
+    _E = objectify.ElementMaker(annotate=False, nsmap=_nsmap_hdr)
     xl_type = '{%s}type' % _nsmap_hdr['xl']
     xsi_type = '{%s}type' % _nsmap_hdr['xsi']
     xl_href = '{%s}href' % _nsmap_hdr['xl']
@@ -584,7 +602,7 @@ def _sdmDataHeader(time,uid,num_antenna,spws,path='0/1/1',cross=True,auto=True):
                 xl_href: uid,
                 xl_title: "EVLA WIDAR correlator visibility data"
                 }),
-            _E.dimensionality(1,axes="TIM"),
+            _E.dimensionality(1, axes="TIM"),
             _E.execBlock({xl_href: uid, xl_type: "simple"}),
             _E.numAntenna(num_antenna),
             _E.correlationMode(corr_mode),
@@ -604,7 +622,7 @@ def _sdmDataHeader(time,uid,num_antenna,spws,path='0/1/1',cross=True,auto=True):
     # order already...
     cur_bb = None
     auto_size = 0
-    cross_size = 0 
+    cross_size = 0
     for s in spws:
         if s.swbb != cur_bb:
             cur_bb = s.swbb
@@ -617,12 +635,12 @@ def _sdmDataHeader(time,uid,num_antenna,spws,path='0/1/1',cross=True,auto=True):
     auto_size *= num_antenna
     cross_size *= 2.0 * num_baseline
     if cross:
-        result.dataStruct.append(_E.crossData(size='%d'%cross_size,
-            axes="BAL BAB SPW BIN SPP STO"))
+        result.dataStruct.append(_E.crossData(size='%d' % cross_size,
+                                              axes="BAL BAB SPW BIN SPP STO"))
     if auto:
-        result.dataStruct.append(_E.autoData(size='%d'%auto_size,
-            axes="ANT BAB SPW BIN SPP STO",
-            normalized="false"))
+        result.dataStruct.append(_E.autoData(size='%d' % auto_size,
+                                             axes="ANT BAB SPW BIN SPP STO",
+                                             normalized="false"))
     return result
 
 # Example data sub header:
@@ -637,13 +655,16 @@ def _sdmDataHeader(time,uid,num_antenna,spws,path='0/1/1',cross=True,auto=True):
 #</sdmDataSubsetHeader>
 
 # Build a sdmDataSubsetHeader element from scratch
-_nsmap_subhdr =  {
+_nsmap_subhdr = {
         'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         'xl': 'http://www.w3.org/1999/xlink',
         None: 'http://Alma/XASDM/sdmbin'
         }
-def _sdmDataSubsetHeader(time,interval,cross=True,auto=True,path='0/1/1/1/'):
-    _E = objectify.ElementMaker(annotate=False,nsmap=_nsmap_subhdr)
+
+
+def _sdmDataSubsetHeader(time, interval, cross=True, auto=True,
+                         path='0/1/1/1/'):
+    _E = objectify.ElementMaker(annotate=False, nsmap=_nsmap_subhdr)
     xl_href = '{%s}href' % _nsmap_subhdr['xl']
     xsi_type = '{%s}type' % _nsmap_subhdr['xsi']
     result = _E.sdmDataSubsetHeader(
@@ -652,11 +673,10 @@ def _sdmDataSubsetHeader(time,interval,cross=True,auto=True,path='0/1/1/1/'):
                 _E.interval(interval)
                 ),
             _E.dataStruct(ref='sdmDataHeader'),
-            projectPath = path 
-            )
+            projectPath=path)
     if cross:
         result.append(_E.crossData({
-            'type': 'FLOAT32_TYPE', 
+            'type': 'FLOAT32_TYPE',
             xl_href: path + 'crossData.bin'
             }))
         result.attrib[xsi_type] = 'BinaryCrossDataFXF'
@@ -669,18 +689,19 @@ def _sdmDataSubsetHeader(time,interval,cross=True,auto=True,path='0/1/1/1/'):
         result.attrib[xsi_type] = 'BinaryCrossAndAutoDataFXF'
     return result
 
+
 class BDFWriter(object):
     """
     Write a BDF file.
     """
-    def __init__(self, path, fname=None, bdf=None, start_mjd=None, uid=None, 
-            num_antenna=None, spws=None, scan_idx=None, subscan_idx=1,
-            corr_mode=None):
+    def __init__(self, path, fname=None, bdf=None, start_mjd=None, uid=None,
+                 num_antenna=None, spws=None, scan_idx=None, subscan_idx=1,
+                 corr_mode=None):
         """Init BDFWrite with output filename (fname).  If the bdf
         argument contains a BDF object, its header is copied for the
-        output file.  Otherwise the following arguments need to be 
+        output file.  Otherwise the following arguments need to be
         filled in for the header:
-            
+
             start_mjd: Start time of the BDF in MJD
             uid: UID to put in the header (eg, uid:///evla/bdf/1484080742396)
             num_antenna: Number of antennas
@@ -690,10 +711,10 @@ class BDFWriter(object):
             corr_mode:  'ca' for cross and auto, 'c' for cross, 'a' for auto
         """
         if fname is not None:
-            self.fname = os.path.join(path,fname)
+            self.fname = os.path.join(path, fname)
         else:
             self.fname = os.path.join(path,
-                    uid.translate(string.maketrans(':/','__')))
+                                      uid.translate(string.maketrans(':/','__')))
         self.fp = None
         self.curidx = 1
         self.mb1 = "MIME_boundary-1"
@@ -702,86 +723,89 @@ class BDFWriter(object):
         self.len1 = 0
         self.len2 = 0
         self.sdmDataHeader = None
-        if bdf is not None: 
+        if bdf is not None:
             self.sdmDataHeader = deepcopy(bdf.sdmDataHeader)
         else:
             cross = 'c' in corr_mode
             auto = 'a' in corr_mode
             path = '0/%d/%d/' % (scan_idx, subscan_idx)
             self.sdmDataHeader = _sdmDataHeader(int(start_mjd*86400.0e9),
-                    uid, num_antenna, spws, path=path,
-                    cross=cross, auto=auto)
+                                                uid, num_antenna, spws,
+                                                path=path, cross=cross,
+                                                auto=auto)
 
     def write_header(self):
         """Open output and write the current header contents."""
-        self.fp = open(self.fname,'w')
+        self.fp = open(self.fname, 'w')
         tophdr = MIMEHeader()
-        tophdr['MIME-Version'] = ['1.0',]
+        tophdr['MIME-Version'] = ['1.0', ]
         tophdr['Content-Type'] = ['multipart/mixed', 'boundary='+self.mb1]
         tophdr['Content-Description'] = [
-                'EVLA/CORRELATOR/WIDAR/FULL_RESOLUTION',]
+                'EVLA/CORRELATOR/WIDAR/FULL_RESOLUTION', ]
         # How do we generate a new unique name?
         nsxl = self.sdmDataHeader.nsmap['xl']
-        uid = self.sdmDataHeader.dataOID.attrib['{%s}href'%nsxl][5:]
-        tophdr['Content-Location'] = ['http://evla.nrao.edu/wcbe/XSDM' + uid,]
+        uid = self.sdmDataHeader.dataOID.attrib['{%s}href' % nsxl][5:]
+        tophdr['Content-Location'] = ['http://evla.nrao.edu/wcbe/XSDM' + uid, ]
         self.fp.write(tophdr.tostring() + '\n')
 
         self.fp.write('--' + self.mb1 + '\n')
         xhdr = MIMEHeader()
         xhdr['Content-Type'] = ['text/xml', 'charset=utf-8']
-        xhdr['Content-Location'] = ['sdmDataHeader.xml',]
+        xhdr['Content-Location'] = ['sdmDataHeader.xml', ]
         self.fp.write(xhdr.tostring() + '\n')
         self.fp.write(etree.tostring(self.sdmDataHeader,
-            standalone=True,encoding='utf-8') + '\n')
+                                     standalone=True, encoding='utf-8') + '\n')
 
-    def write_integration(self, bdf_int=None, mjd=None, 
-            interval=None, data=None):
+    def write_integration(self, bdf_int=None, mjd=None, interval=None,
+                          data=None):
         """
-        Input is a BDFIntegration object (bdf_int).  The projectPath will 
-        be updated so that it is consistent for the file being written but 
-        otherwise no changes are made to the contents.  
+        Input is a BDFIntegration object (bdf_int).  The projectPath will
+        be updated so that it is consistent for the file being written but
+        otherwise no changes are made to the contents.
 
         Alternately, rather than a bdf_int, the remaining arguments can be
         filled in (for creating BDFs from scratch):
 
           mjd: the MJD of the midpoint of the integaration
           interval: the duration of the integration (sec)
-          data: a dict whose entries are the numpy data arrays.  The 
+          data: a dict whose entries are the numpy data arrays.  The
             keywords should be one or both of 'crossData' and 'autoData'
             depending on whether cross-correlations, auto-correlations, or
             both are present in the data set.
         """
-        # NOTES for doing this:  bdf_int does not really need to be a 
+
+        # NOTES for doing this:  bdf_int does not really need to be a
         # BDFIntegration.  It needs to act like it in the following ways:
         # 1. It needs to have a sdmDataSubsetHeader lxml Element object
         # representing the sub header.
         # 2. It needs to have a data attribute which is a dict of numpy
         # arrays containing the actual data to be written.  It
+
         tophdr = MIMEHeader()
         tophdr['Content-Type'] = ['multipart/related', 'boundary='+self.mb2]
-        tophdr['Content-Description'] = ['data and metadata subset',]
+        tophdr['Content-Description'] = ['data and metadata subset', ]
 
         ppidx = self.sdmDataHeader.attrib['projectPath'] + '%d/' % self.curidx
 
         hdr = MIMEHeader()
         hdr['Content-Type'] = ['text/xml', 'charset=utf-8']
         hdr['Content-Location'] = [ppidx + 'desc.xml']
-        if self.len0==0:
+        if self.len0 == 0:
             self.len0 = len(hdr.tostring()) + 12
         nxpad = self.len0 - len(hdr.tostring())
-        if nxpad<0: 
+        if nxpad < 0:
             raise RuntimeError('nxpad(0)<0')
-        hdr['X-pad'] = ['*'*nxpad,]
+        hdr['X-pad'] = ['*'*nxpad, ]
 
         # Copy or generate XML sub-header
         if bdf_int is not None:
             subhdr = deepcopy(bdf_int.sdmDataSubsetHeader)
             data = bdf_int.data
         else:
-            cross = 'crossData' in data.keys()
-            auto = 'autoData' in data.keys()
-            subhdr = _sdmDataSubsetHeader(int(mjd*86400e9), int(interval*1e9), 
-                    cross=cross, auto=auto)
+            cross = 'crossData' in list(data.keys())
+            auto = 'autoData' in list(data.keys())
+            subhdr = _sdmDataSubsetHeader(int(mjd*86400e9), int(interval*1e9),
+                                          cross=cross, auto=auto)
 
         subhdr.attrib['projectPath'] = ppidx
         nsxl = subhdr.nsmap['xl']
@@ -790,8 +814,8 @@ class BDFWriter(object):
         for dtype in ('crossData', 'autoData'):
             try:
                 loc = ppidx + dtype + '.bin'
-                getattr(subhdr,dtype).attrib['{%s}href'%nsxl] = loc
-                dtypes += [dtype,]
+                getattr(subhdr, dtype).attrib['{%s}href' % nsxl] = loc
+                dtypes += [dtype, ]
                 mhdr[dtype] = MIMEHeader()
                 mhdr[dtype]['Content-Type'] = ['application/octet-stream']
                 mhdr[dtype]['Content-Location'] = [loc]
@@ -800,17 +824,17 @@ class BDFWriter(object):
 
         # Figure out how much X-pad to add
         subhdr_str = etree.tostring(subhdr, standalone=True, encoding='utf-8')
-        if self.len1==0:
+        if self.len1 == 0:
             self.len1 = len(subhdr_str) + len(mhdr[dtypes[0]].tostring()) + 50
         nxpad = self.len1 - (len(subhdr_str) + len(mhdr[dtypes[0]].tostring()))
-        mhdr[dtypes[0]]['X-pad'] = ['*'*nxpad,]
+        mhdr[dtypes[0]]['X-pad'] = ['*'*nxpad, ]
 
         # Assumes at most 2 data types.. TODO make more general?
-        if len(dtypes)>1:
-            if self.len2==0:
+        if len(dtypes) > 1:
+            if self.len2 == 0:
                 self.len2 = len(mhdr[dtypes[1]].tostring()) + 12
             nxpad = self.len2 - len(mhdr[dtypes[1]].tostring())
-            mhdr[dtypes[1]]['X-pad'] = ['*'*nxpad,]
+            mhdr[dtypes[1]]['X-pad'] = ['*'*nxpad, ]
 
         # TODO should check that data sizes match up with header info..
 
@@ -836,4 +860,3 @@ class BDFWriter(object):
     def close(self):
         self.fp.write('--' + self.mb1 + '--\n')
         self.fp.close()
-

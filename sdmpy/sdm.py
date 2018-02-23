@@ -1,6 +1,6 @@
-#! /usr/bin/env python
-
-# sdm.py -- P. Demorest, 2015/03
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import os.path
 from lxml import etree, objectify
@@ -48,7 +48,7 @@ class SDM(object):
     @property
     def tables(self):
         """Return the list of table names"""
-        return self._tables.keys()
+        return list(self._tables.keys())
 
     def __getitem__(self,key):
         return self._tables[key]
@@ -173,7 +173,7 @@ class SDMTable(object):
                     # and need to explicitly check type to avoid problems 
                     # with string (eg, dont want (1,1) to match '11').
                     if isinstance(tag,tuple):
-                        if isinstance(key,tuple) and map(str,tag)==map(str,key):
+                        if isinstance(key, tuple) and list(map(str, tag)) == list(map(str, key)):
                             return r
                     else:
                         if str(tag) == str(key):

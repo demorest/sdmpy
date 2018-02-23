@@ -1,6 +1,6 @@
-# scan.py
-#
-# higher-level class to gather per-scan info from SDM and BDF sets
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import string
 import numpy
@@ -8,16 +8,20 @@ import os.path
 
 from .bdf import BDF, ant2bl, bl2ant
 
+# higher-level class to gather per-scan info from SDM and BDF sets
+
 def uid2fname(s):
     """Convert uid URL to file name (mainly for BDFs)."""
-    return s.translate(string.maketrans(':/','__'))
+    return s.translate(string.maketrans(':/', '__'))
+
 
 def sdmarray(s,dtype=None):
     """Convert an array-valued SDM entry (string) into a numpy array."""
     fields = str(s).split()
     ndim = int(fields[0])
-    dims = tuple(map(int,fields[1:ndim+1]))
-    return numpy.array(fields[ndim+1:],dtype=dtype).reshape(dims)
+    dims = tuple(map(int, fields[1:ndim+1]))
+    return numpy.array(fields[ndim+1:], dtype=dtype).reshape(dims)
+
 
 class Scan(object):
     """
@@ -138,7 +142,7 @@ class Scan(object):
         nbl = nant*(nant-1)/2
         #return ['%s-%s' % (ants[x[0]], ants[x[1]]) 
         #        for x in map(bl2ant, range(nbl))]
-        return [(ants[x[0]], ants[x[1]]) for x in map(bl2ant, range(nbl))]
+        return [(ants[x[0]], ants[x[1]]) for x in map(bl2ant, list(range(nbl)))]
 
     @property
     def startMJD(self):

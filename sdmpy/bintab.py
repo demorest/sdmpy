@@ -1,11 +1,11 @@
-#! /usr/bin/env python
-
-# bintab.py -- P. Demorest, 2017/04
-
-# Contains code for unpacking data from SDM binary tables.
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import struct
 import numpy
+
+# Contains code for unpacking data from SDM binary tables.
 
 def unpacker(sdmtable):
     """Return an appropriate unpacker given an SDMBinaryTable object."""

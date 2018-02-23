@@ -1,14 +1,14 @@
-#! /usr/bin/env python
-
-# calib.py -- PBD 2016/05
-
-# Some routines to derive simple calibration solutions directly
-# from data arrays.
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import numpy as np
 from numpy import linalg
 
 from .bdf import ant2bl, bl2ant
+
+# Some routines to derive simple calibration solutions directly
+# from data arrays.
 
 def gaincal(data,axis=0,ref=0,avg=[],nit=3):
     """Derives amplitude/phase calibration factors from the data array
@@ -43,7 +43,7 @@ def gaincal(data,axis=0,ref=0,avg=[],nit=3):
     # First axis is now antenna.. refer all phases to reference ant
     result = (result*np.conj(result[ref])/np.abs(result[ref])).T
     # TODO try to reduce number of transposes
-    outdims = range(axis) + [-1,] + range(axis,ndim-1)
+    outdims = list(range(axis)) + [-1, ] + list(range(axis, ndim-1))
     return result.transpose(outdims)
 
 def applycal(data,caldata,axis=0,phaseonly=False):
