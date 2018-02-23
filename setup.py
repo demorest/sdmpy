@@ -10,7 +10,7 @@ setup(
     author_email='pdemores@nrao.edu',
     url='http://github.com/demorest/sdmpy',
     packages=find_packages(),        # get all python scripts in realtime
-    install_requires=['lxml', 'numpy', 'futures'],
+    install_requires=['lxml', 'numpy', 'future'],
     package_data={'sdmpy': ['xsd/*.xsd']},
     scripts=['scripts/bdf_average.py',
              'scripts/bdf_bin_split.py',
