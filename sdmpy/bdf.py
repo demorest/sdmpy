@@ -1,6 +1,7 @@
-from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from __future__ import print_function, division, absolute_import, unicode_literals # not casa compatible
 from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
+from io import open
 
 import os
 import sys
@@ -79,7 +80,7 @@ class BDF(object):
     def __init__(self, fname):
         self.fname = fname
         try:
-            self.fp = open(fname, 'r')
+            self.fp = open(fname, 'rb')
         except IOError:
             self.fp = None
             logger.warn('No BDF file found at {0}'.format(fname))
@@ -227,8 +228,11 @@ class BDF(object):
         return self.get_integration(idx)
 
     def zerofraction(self, spwidx='all', type='cross'):
-        """Return zero fraction for the entire BDF.  This is done by loading
-        each integration's data so may take a while."""
+        """
+        Return zero fraction for the entire BDF.  This is done by loading
+        each integration's data so may take a while.
+        """
+
         tot = 0.0
         for i in self:
             tot += i.zerofraction(spwidx, type)
@@ -738,7 +742,7 @@ class BDFWriter(object):
 
     def write_header(self):
         """Open output and write the current header contents."""
-        self.fp = open(self.fname, 'w')
+        self.fp = open(self.fname, 'wb')
         tophdr = MIMEHeader()
         tophdr['MIME-Version'] = ['1.0', ]
         tophdr['Content-Type'] = ['multipart/mixed', 'boundary='+self.mb1]

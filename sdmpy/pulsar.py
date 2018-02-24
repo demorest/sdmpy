@@ -1,6 +1,7 @@
-from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from __future__ import print_function, division, absolute_import, unicode_literals # not casa compatible
 from builtins import bytes, dict, object, range, map, input, int #, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
+from io import open
 
 import os
 import warnings
@@ -29,7 +30,7 @@ def _get_epoch_period(mjd):
     if _bin_epochs is None:
         _bin_epochs = []
         _bin_periods = []
-        for l in open(_bin_file):
+        for l in open(_bin_file, 'rb'):
             # _bin_epochs += [MJD(l.split()[0]),]
             # _bin_periods += [float(l.split()[1]),]
             if l.startswith('epoch '):
@@ -72,7 +73,7 @@ class BinLog(object):
 
     def _read(self):
         # Actually read the file
-        for l in open(os.path.join(self._logdir, self.sdmname+'.binlog')):
+        for l in open(os.path.join(self._logdir, self.sdmname+'.binlog'), 'rb'):
             (_sdmname, _idx, _epoch_clk, _period_us, _period_clk) = l.split()
             if _sdmname != self.sdmname:
                 continue
