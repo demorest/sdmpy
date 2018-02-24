@@ -117,7 +117,7 @@ class BDF(object):
     def read_mime(self, full_read=False):
         if self.fp:
             self.fp.seek(0, 0)  # Go back to start
-            if not self.fp.readline().startswith('MIME-Version:'):
+            if not self.fp.readline().decode('utf-8').startswith('MIME-Version:'):
                 raise RuntimeError('Invalid BDF: missing MIME-Version')
 
             # First we need to read and parse only the main XML header in order

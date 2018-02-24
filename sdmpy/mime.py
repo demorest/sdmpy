@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals # not casa compatible
-from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from builtins import bytes, chr, dict, object, range, map, input, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -41,12 +41,12 @@ class MIMEHeader(OrderedDict):
             # Since we are using OrderedDict, can get the most recently
             # added key.
             key = list(self.keys())[-1]
-            vals = list(map(string.strip, line[1:].split(';')))
+            vals = [ll.strip() for ll in line[1].split(';')]
             self[key].extend(vals)
         else:
             idx = line.index(':')
             key = line[:idx]
-            vals = list(map(string.strip, line[idx+1:].split(';')))
+            vals = [ll.strip() for ll in line[idx+1:].split(';')]
             self[key] = vals
 
     @staticmethod
@@ -127,7 +127,7 @@ class MIMEPart(object):
         # with this approach.
         while True:
 
-            line = fp.readline().replace('\r', '')
+            line = fp.readline().decode('utf-8').replace('\r', '')
 
             # hit EOF
             if line == '':
