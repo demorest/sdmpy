@@ -271,13 +271,13 @@ class SDMBinaryTable(object):
 
     def __init__(self, name, path, use_xsd=None):
         self.name = name
-        fp = open(path+'/'+name+'.bin', 'rb')
+        fp = open(path+'/'+name+'.bin', mode='rb')
         self._data = fp.read()
         fp.seek(0)
         try:
             mimetmp = MIMEPart(fp, recurse=True)
             # Assume part 0 is header; TODO do more checks
-            self.header = objectify.fromstring(mimetmp.body[0].body)
+            self.header = objectify.fromstring(bytes(mimetmp.body[0].body, 'utf-8'))
             self._doffs = mimetmp.body[1].body
             self._dsize = mimetmp.body[1].size
         except RuntimeError:

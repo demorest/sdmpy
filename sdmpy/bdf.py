@@ -5,7 +5,6 @@ from io import open
 
 import os
 import sys
-import string
 import re
 import mmap
 import math
@@ -128,7 +127,7 @@ class BDF(object):
             sdmDataMime = MIMEPart(self.fp, boundary=self.top_mime_bound)
             if sdmDataMime.loc != 'sdmDataHeader.xml':
                 raise RuntimeError('Invalid BDF: missing sdmDataHeader.xml')
-            self.sdmDataHeader = objectify.fromstring(sdmDataMime.body)
+            self.sdmDataHeader = objectify.fromstring(bytes(sdmDataMime.body, 'utf-8'))
             self.bin_size = {}
             self.bin_axes = {}
             for e in self.sdmDataHeader.iter():
@@ -146,7 +145,7 @@ class BDF(object):
                 self.mime_ints = [MIMEPart(self.fp,
                                            boundary=self.top_mime_bound,
                                            binary_size=self.bin_size,
-                                           recurse=True),]
+                                           recurse=True), ]
             # Compute size of each integration section:
                 self.size_ints = self.fp.tell() - self.offset_ints
                 numints = int((os.path.getsize(self.fname)-self.offset_ints)//self.size_ints)
@@ -443,7 +442,7 @@ class BDFIntegration(object):
     def __init__(self, bdf, idx):
         # Get the main header
         self.sdmDataSubsetHeader = objectify.fromstring(
-                bdf._raw(idx).body[0].body)
+                bytes(bdf._raw(idx).body[0].body, 'utf-8'))
         # Copy some info from the BDF headers
         self.basebands = bdf.basebands
         self.spws = bdf.spws
@@ -720,7 +719,8 @@ class BDFWriter(object):
             self.fname = os.path.join(path, fname)
         else:
             self.fname = os.path.join(path,
-                                      uid.translate(string.maketrans(':/','__')))
+#                                      uid.translate(string.maketrans(':/','__')))
+                                      uid.replace(':/', '__').replace('/', '_'))
         self.fp = None
         self.curidx = 1
         self.mb1 = "MIME_boundary-1"

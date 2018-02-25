@@ -3,7 +3,6 @@ from builtins import bytes, chr, dict, object, range, map, input, str # not casa
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-import string
 import os.path
 from collections import OrderedDict
 
@@ -52,7 +51,7 @@ class MIMEHeader(OrderedDict):
     @staticmethod
     def _asline(key, val):
         """Convert given key and value list to MIME header line."""
-        return key + ': ' + string.join(val, '; ') + '\n'
+        return key + ': ' + '; '.join(val) + '\n'
 
     def tostring(self, key=None):
         """
@@ -179,7 +178,7 @@ class MIMEPart(object):
                         gotit = False
                         while not gotit:
                             junk = fp.read(bs)
-                            bloc = junk.find('--'+boundary)
+                            bloc = junk.find(bytes('--'+boundary, 'utf-8'))
                             br = len(junk)
                             eof = (br < bs)
                             if bloc < 0:
