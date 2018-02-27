@@ -35,7 +35,7 @@ args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
 
-sdm = sdmpy.SDM(sdmname)
+sdm = sdmpy.SDM(sdmname,use_xsd=False)
 
 # Get the number of bins, currently assumes it's constant throughout
 # the data set.
@@ -47,7 +47,8 @@ try:
     bdf0 = sdm.scan(args.scan[0]).bdf
 except IndexError:
     bdf0 = sdm.scan(1).bdf
-nbin = bdf0.spws[0].numBin
+#nbin = bdf0.spws[0].numBin
+nbin = max([s.bdf.spws[0].numBin for s in sdm.scans()])
 
 # Read a template file
 tmpl = None
@@ -68,8 +69,7 @@ if args.template:
     # will broadcast correctly against a full data array.
     ftmpl = np.conj(fft(tmpl)).reshape((1,1,nbin,1,1))
 
-# Sets up the output paths.  Use the "extra" ibin==nbin entry
-# for the averaged data.
+# Sets up the output paths.  bin 0 is for the averaged data.
 sdmout = []
 bdfoutpath = []
 if args.cal:
@@ -78,10 +78,10 @@ if args.cal:
     nbin = 2
 else:
     for ibin in range(nbin+1):
-        if ibin==nbin:
+        if ibin==0:
             sdmout.append(sdmname + '.avg')
         else:
-            sdmout.append(sdmname + '.bin%04d'%ibin)
+            sdmout.append(sdmname + '.bin%04d'%(ibin-1))
 
 for ibin in range(len(sdmout)):
     bdfoutpath.append(sdmout[ibin] + '/ASDMBinary')
@@ -101,12 +101,13 @@ for scan in sdm.scans():
         print "nbin!=2 for scan %s, skipping" % (scan.idx,)
         continue
     # Array of dims (nspw,nchan) giving freqs in MHz
+    nbin_scan = bdf.spws[0].numBin
     freqs_spw = scan.freqs()/1e6
     bdfoutname = map(lambda x: x+'/'+os.path.basename(scan.bdf_fname), 
-            bdfoutpath)
+            bdfoutpath[:nbin_scan+1])
     # Set up for output BDFs, copying header info from the input BDF
     # and changing nbin to 1.
-    bdfout = map(lambda x: sdmpy.bdf.BDFWriter(x,bdf=bdf), bdfoutname)
+    bdfout = map(lambda x: sdmpy.bdf.BDFWriter('',x,bdf=bdf), bdfoutname)
     for ibdf in bdfout: 
         for bb in ibdf.sdmDataHeader.dataStruct.baseband:
             for spw in bb.spectralWindow:
@@ -118,7 +119,7 @@ for scan in sdm.scans():
                 ds = ibdf.sdmDataHeader.dataStruct.__dict__[a]
                 if 'BIN' in ds.attrib['axes']:
                     sz = int(ds.attrib['size'])
-                    ds.attrib['size'] = str(sz/nbin)
+                    ds.attrib['size'] = str(sz/nbin_scan)
             except KeyError:
                 pass
         ibdf.write_header()
@@ -170,7 +171,7 @@ for scan in sdm.scans():
             data *= dataz_m
             
             # Dedisperse if needed
-            if args.dm!=0.0:
+            if args.dm!=0.0 and nbin_scan>1:
                 dedisperse_array(data, args.dm, freqs_spw, args.period,
                         bin_axis=2, freq_axis=3, spw_axis=1)
 
@@ -191,17 +192,17 @@ for scan in sdm.scans():
                 binint[0].data[dtype] = (wt*(b1+b0))*0.5
                 binint[1].data[dtype] = wt*(b1-b0)
             else:
-                binint[nbin].data[dtype] = data.mean(axis=2)
+                binint[0].data[dtype] = data.mean(axis=2)
                 if tmpl is not None:
                     cdata = ifft(fft(data,axis=2)*ftmpl,axis=2)
-                    for ibin in range(nbin):
-                        binint[ibin].data[dtype] = \
+                    for ibin in range(nbin_scan):
+                        binint[ibin+1].data[dtype] = \
                                 cdata.take(ibin,axis=2).astype(data.dtype)
                 else:
-                    for ibin in range(nbin):
-                        binint[ibin].data[dtype] = data.take(ibin,axis=2)
+                    for ibin in range(nbin_scan):
+                        binint[ibin+1].data[dtype] = data.take(ibin,axis=2)
                         if args.meansub:
-                            binint[ibin].data[dtype] -= binint[nbin].data[dtype]
+                            binint[ibin+1].data[dtype] -= binint[0].data[dtype]
 
         for ibin in range(len(bdfout)):
             bdfout[ibin].write_integration(binint[ibin])

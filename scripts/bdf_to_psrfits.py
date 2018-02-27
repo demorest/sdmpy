@@ -30,7 +30,7 @@ logging.basicConfig(format="%(asctime)-15s %(levelname)8s %(message)s",
         level=args.loglevel)
 
 sdmname = args.sdmname.rstrip('/')
-sdm = sdmpy.SDM(sdmname)
+sdm = sdmpy.SDM(sdmname, use_xsd=False)
 try:
     binlog = sdmpy.pulsar.BinLog(sdmname)
 except IOError:
@@ -86,10 +86,15 @@ for scan in sdm.scans():
 
         # Try to load polycos
         try:
-            polycofile = '%s/%s.%d.polyco' % (binlog._logdir,
-                    sdmname, int(scan.idx))
-            polys = psrchive.polyco(polycofile)
-            logging.info('Read polycos from %s' % polycofile)
+            if scan.pulsar is not None:
+                polys = sdmpy.pulsar.sdmpulsar_to_polyco(scan.pulsar,
+                        fmt='psrchive')
+                logging.info('Read polycos from SDM Pulsar table')
+            else:
+                polycofile = '%s/%s.%d.polyco' % (binlog._logdir,
+                        sdmname, int(scan.idx))
+                polys = psrchive.polyco(polycofile)
+                logging.info('Read polycos from %s' % polycofile)
         except Exception as ex:
             logging.info("Couldn't load polycos: " + repr(ex))
             polys = None
@@ -112,7 +117,7 @@ for scan in sdm.scans():
                 dt = 0.0
                 logging.info('Using constant period')
             else:
-                if binlog is not None:
+                if (binlog is not None) or (polys is not None):
                     # Apply polyco time adjust
                     if args.polycos and polys is not None:
                         dt = (polys.period(epoch_bdf) 

@@ -151,6 +151,8 @@ class SDMTable(object):
             'Main': ('scanNumber', 'subscanNumber'),
             'Scan': ('scanNumber',),
             'Subscan': ('scanNumber', 'subscanNumber'),
+            'CalDevice': ('antennaId', 'spectralWindowId'),
+            'Receiver': ('spectralWindowId',)
             }
 
     def __init__(self, name, path='.', use_xsd=True):

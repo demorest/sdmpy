@@ -40,6 +40,9 @@ class Scan(object):
         self.idx = str(scanidx)
         self.subidx = str(subscanidx)
         self._bdf = None
+        self.__main = None
+        self.__scan = None
+        self.__subscan = None
 
     @property
     def bdf(self):
@@ -50,17 +53,23 @@ class Scan(object):
     @property
     def _main(self):
         """Convenience interface to the SDM Main table row."""
-        return self.sdm['Main'][(self.idx, self.subidx)]
+        if self.__main is None:
+            self.__main = self.sdm['Main'][(self.idx, self.subidx)]
+        return self.__main
 
     @property
     def _scan(self):
         """Convenience interface to the SDM Scan table row."""
-        return self.sdm['Scan'][self.idx]
+        if self.__scan is None:
+            self.__scan = self.sdm['Scan'][self.idx]
+        return self.__scan
 
     @property
     def _subscan(self):
         """Convenience interface to the SDM Subscan table row."""
-        return self.sdm['Subscan'][(self.idx,self.subidx)]
+        if self.__subscan is None:
+            self.__subscan = self.sdm['Subscan'][(self.idx,self.subidx)]
+        return self.__subscan
 
     @property
     def _config(self):
@@ -197,9 +206,20 @@ class Scan(object):
         return [float(self.spw(spwn).chanWidth)
                 for spwn in range(len(self.spws))]
 
+    @property
+    def pulsar(self):
+        """ Pulsar row entry, if one exists, otherwise None. """
+        # Note assumes spw 0 right now (in principle could be different
+        # pulsar models per spw).
+        try:
+            dd_id = sdmarray(self._config.dataDescriptionId)[0]
+            psr_id = self.sdm['DataDescription'][dd_id].pulsarId
+            return self.sdm['Pulsar'][psr_id]
+        except AttributeError:
+            return None
+
     def freqs(self, spwidx='all'):
-        """
-        Array of per-channel frequences for the given spectral window.
+        """ Array of per-channel frequences for the given spectral window.
         If spwidx=='all', a nspw-by-nchan array will be returned giving all
         frequencies, if all spectral window have the same number of channels.
         """
@@ -217,6 +237,22 @@ class Scan(object):
                 out[i, :] = numpy.arange(nc)*cw[i] + rf[i]
         else:
             out = numpy.arange(nc[spwidx]) * cw[spwidx] + rf[spwidx]
+        return out
+
+    def tcal(self,spwidx='all'):
+        """ Array of Tcal values from CalDevice table."""
+        sdm_ants = sdmarray(self._config.antennaId)
+        nspw = len(self.spws)
+        nant = len(sdm_ants)
+        if spwidx=='all':
+            out = numpy.zeros((nant,nspw,2)) # assumes 2-pol values..
+            for iant in range(nant):
+                for ispw in range(nspw):
+                    tmp = self.sdm['CalDevice'][(sdm_ants[iant],
+                        self.spws[ispw])].coupledNoiseCal
+                    out[iant,ispw,:] = sdmarray(tmp,dtype=numpy.float)[:,0]
+        else:
+            raise NotImplementedError('Single spw not implemented yet')
         return out
 
     def spw(self, idx):
