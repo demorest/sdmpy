@@ -218,6 +218,22 @@ class Scan(object):
             out = numpy.arange(nc[spwidx]) * cw[spwidx] + rf[spwidx]
         return out
 
+    def tcal(self,spwidx='all'):
+        """ Array of Tcal values from CalDevice table."""
+        sdm_ants = sdmarray(self._config.antennaId)
+        nspw = len(self.spws)
+        nant = len(sdm_ants)
+        if spwidx=='all':
+            out = numpy.zeros((nant,nspw,2)) # assumes 2-pol values..
+            for iant in range(nant):
+                for ispw in range(nspw):
+                    tmp = self.sdm['CalDevice'][(sdm_ants[iant],
+                        self.spws[ispw])].coupledNoiseCal
+                    out[iant,ispw,:] = sdmarray(tmp,dtype=numpy.float)[:,0]
+        else:
+            raise NotImplementedError('Single spw not implemented yet')
+        return out
+
     def spw(self,idx):
         """Return the SpectralWindow entry for the given index in this scan."""
         dd_id = sdmarray(self._config.dataDescriptionId)[idx]
