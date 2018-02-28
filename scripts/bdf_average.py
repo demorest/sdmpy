@@ -34,11 +34,12 @@ os.mkdir(bdfoutpath)
 
 for scan in sdm.scans():
     print "Processing '%s' scan %s:" % (sdmname, scan.idx)
-    try:
-        bdf = scan.bdf
-    except IOError:
+    if scan.bdf.fp is None:
         print "Error reading bdf for scan %s, skipping" % (scan.idx,)
         continue
+
+    bdf = scan.bdf
+
     # TODO maybe rename BDFs...
     # Also this assumes averaging time is the same during the whole
     # BDF.  This is always true for VLA data.
@@ -47,7 +48,7 @@ for scan in sdm.scans():
     nout = int(bdf.numIntegration / navg)
     delta_t = int((navg/2.0)*bdf[0].interval*1e9) # ns
     # Set up for output BDF, copying header info from the input BDF
-    bdfout = sdmpy.bdf.BDFWriter(bdfoutname, bdf=bdf)
+    bdfout = sdmpy.bdf.BDFWriter(bdfoutpath, fname=os.path.basename(scan.bdf_fname), bdf=bdf)
     bdfout.write_header()
     bar = progressbar.ProgressBar()
     for i in bar(range(nout)):

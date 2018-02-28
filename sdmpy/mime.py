@@ -1,6 +1,10 @@
-#! /usr/bin/env python
+from __future__ import print_function, division, absolute_import, unicode_literals # not casa compatible
+from builtins import bytes, chr, dict, object, range, map, input, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
+from io import open
 
-# mime.py -- PBD 2016/04
+import os.path
+from collections import OrderedDict
 
 # This class provdes MIME-parsing functionality suitable for reading
 # EVLA/ALMA Binary Data Format (BDF) files, and SDM binary tables.  It
@@ -8,8 +12,6 @@
 # contents of binary type are not returned directed, rather an offset
 # into the file is given.
 
-import string
-from collections import OrderedDict
 
 class MIMEHeader(OrderedDict):
     # MIMEHeader is a dict with keys equal to the mime header keywords
@@ -24,7 +26,7 @@ class MIMEHeader(OrderedDict):
                     return v[v.index('=')+1:]
         return None
 
-    def addline(self,line):
+    def addline(self, line):
         """
         Given a single line from a mime header, split it into key/val and
         add it to the dict.
@@ -32,46 +34,47 @@ class MIMEHeader(OrderedDict):
         # If the line begins with whitespace, assume it is a continuation of
         # the previous line, and append it to the last value read.  I'm not
         # sure how legit this is but all examples of multi-line headers
-        # I've seen seem to follow this pattern.  It is possible that 
+        # I've seen seem to follow this pattern.  It is possible that
         # the previous line ending with ; is a more reliable indicator.
         if line.startswith('\t'):
             # Since we are using OrderedDict, can get the most recently
             # added key.
-            key = self.keys()[-1]
-            vals = map(string.strip, line[1:].split(';'))
+            key = list(self.keys())[-1]
+            vals = [ll.strip() for ll in line[1].split(';')]
             self[key].extend(vals)
         else:
             idx = line.index(':')
             key = line[:idx]
-            vals = map(string.strip, line[idx+1:].split(';'))
+            vals = [ll.strip() for ll in line[idx+1:].split(';')]
             self[key] = vals
 
     @staticmethod
-    def _asline(key,val):
+    def _asline(key, val):
         """Convert given key and value list to MIME header line."""
-        return key + ': ' + string.join(val, '; ') + '\n'
+        return key + ': ' + '; '.join(val) + '\n'
 
-    def tostring(self,key=None):
+    def tostring(self, key=None):
         """
         Return contents as in MIME-header format.  If key is given, only
         the line corresponding to the requested key will be returned,
         otherwise the full header will be returned.
         """
         if key is not None:
-            return self._asline(key,self[key])
+            return self._asline(key, self[key])
         else:
             out = ''
-            for k in self.keys():
-                out += self._asline(k,self[k])
+            for k in list(self.keys()):
+                out += self._asline(k, self[k])
             return out
 
     def __str__(self):
         return self.tostring()
 
+
 # TODO make a utils.py to hold stuff like this
-import os
 def basename_noext(path):
     return os.path.basename(os.path.splitext(path)[0])
+
 
 class MIMEPart(object):
     """
@@ -89,7 +92,7 @@ class MIMEPart(object):
     The type property is a shortcut for Content-Type
     """
 
-    def __init__(self,fp,boundary=None,recurse=False,binary_size=None):
+    def __init__(self, fp, boundary=None, recurse=False, binary_size=None):
         """
         Read a MIME content part starting at the current file location.
         Return value is a MIMEPart object, which has elements:
@@ -102,14 +105,14 @@ class MIMEPart(object):
 
         If recurse is True, will read/return the contents of a multipart
         (and any multiparts found at lower levels).  Otherwise will read
-        one header/body unit and pointer will be left at the start of 
+        one header/body unit and pointer will be left at the start of
         the next one (or first sub-part for multiparts).
 
         binary_size is a dict of sizes of binary components by type.
         For each binary part found, if Content-Location agrees with type,
         the binary data will be skipped over rather than read (this is
         for reading BDF files).  If binary_size is not given, or if an
-        unknown type is found, the data must be read to determine its 
+        unknown type is found, the data must be read to determine its
         size, however this last part is not implemented yet.
         """
         self.hdr = MIMEHeader({})
@@ -123,10 +126,10 @@ class MIMEPart(object):
         # with this approach.
         while True:
 
-            line = fp.readline().replace('\r','')
+            line = fp.readline().decode('utf-8').replace('\r', '')
 
             # hit EOF
-            if line=='':
+            if line == '':
                 return
 
             # Check for multipart boundary marker
@@ -134,27 +137,27 @@ class MIMEPart(object):
                 if in_hdr:
                     # If we are starting, ignore a 'start' marker,
                     # quit on a 'done' marker
-                    if line=='--'+boundary+'\n':
+                    if line == '--'+boundary+'\n':
                         continue
-                    elif line=='--'+boundary+'--\n':
+                    elif line == '--'+boundary+'--\n':
                         self.hdr = MIMEHeader({})
                         self.body = None
                         return
                 else:
-                    # This marks the end of a part, rewind so that the 
+                    # This marks the end of a part, rewind so that the
                     # next part can be parsed, and return results
                     if line.startswith('--' + boundary):
-                        fp.seek(-len(line),1)
+                        fp.seek(-len(line), 1)
                         return
 
-            if line=='\n':
+            if line == '\n':
                 # Got blank line, the next part will be body.  We
                 # want to skip it if this is a binary part, otherwise
                 # read and return the body.
                 in_hdr = False
                 if binary_type:
                     # Note the location within the file and skip
-                    # ahead by the correct amount.  For BDF files, 
+                    # ahead by the correct amount.  For BDF files,
                     # use Content-Location to get type of binary part.
                     try:
                         bin_name = basename_noext(
@@ -166,25 +169,25 @@ class MIMEPart(object):
                     # if the bin_name is unknown, we read the data
                     # until the boundary marker is found to determine
                     # the size.
-                    if ((binary_size is None) 
-                            or (bin_name not in binary_size.keys())):
-                        #raise RuntimeError("Unknown binary type '%s' found"
+                    if ((binary_size is None) or
+                       (bin_name not in list(binary_size.keys()))):
+                        # raise RuntimeError("Unknown binary type '%s' found"
                         #        % bin_name)
-                        bl = len(boundary)+2 # length of boundary string
+                        bl = len(boundary)+2  # length of boundary string
                         bs = 1024*1024       # block size for scanning
                         gotit = False
                         while not gotit:
                             junk = fp.read(bs)
-                            bloc = junk.find('--'+boundary)
+                            bloc = junk.find(bytes('--'+boundary, 'utf-8'))
                             br = len(junk)
                             eof = (br < bs)
-                            if bloc<0:
+                            if bloc < 0:
                                 if eof:
                                     raise RuntimeError(
-                                            "Missing boundary string '%s'" 
+                                            "Missing boundary string '%s'"
                                             % boundary)
                                 else:
-                                    fp.seek(-bl,1)
+                                    fp.seek(-bl, 1)
                             else:
                                 gotit = True
                                 fp.seek(-br + bloc, 1)
@@ -199,8 +202,8 @@ class MIMEPart(object):
                         # Parse the parts and add to a list
                         while True:
                             pmime = MIMEPart(fp, boundary=boundary,
-                                        recurse=True,
-                                        binary_size=binary_size)
+                                             recurse=True,
+                                             binary_size=binary_size)
                             if pmime.hdr == {}:
                                 return
                             else:
@@ -222,8 +225,10 @@ class MIMEPart(object):
             else:
                 if not binary_type:
                     # In body part of a non-binary type
-                    if self.body is None: self.body = line
-                    else: self.body += line
+                    if self.body is None:
+                        self.body = line
+                    else:
+                        self.body += line
                 else:
                     # Should not really get here, means size calculation
                     # failed or file is otherwise messed up... what to do?
@@ -242,4 +247,3 @@ class MIMEPart(object):
             return self.hdr['Content-Type'][0]
         except KeyError:
             return None
-
