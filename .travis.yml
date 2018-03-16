@@ -5,10 +5,18 @@ python:
    - 3.6
 
 install:
+  - pip install coverage codecov
   - python setup.py install
 
-script:
-  - pytest
+#script:
+#  - pytest
+
+script: 
+  - coverage run --source sdmpy -m py.test
+
+after_success:
+  - coverage report
+  - codecov
 
 notifications:
   email: false

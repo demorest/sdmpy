@@ -5,12 +5,14 @@ import numpy as np
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 
+
 @pytest.fixture(scope="module")
 def sdm(request):
     sdmfile = os.path.join(_install_dir,
                            'data/16A-459_TEST_1hr_000.57633.66130137732.scan7.cut1')
 
     return sdmpy.SDM(sdmfile)
+
 
 def test_tables(sdm):
     assert len(sdm.tables) == 34
@@ -23,13 +25,6 @@ def test_maintable(sdm):
 
 def test_bdfs(sdm):
     assert any([scan.bdf.exists for scan in sdm.scans()])
-
-
-def test_meta(sdm):
-    scan = sdm.scan(1)
-    assert scan.numIntegration == 596
-    assert len(scan.antennas) == 27
-    assert len(scan.spws) == 8
 
 
 def test_bdfmeta(sdm):

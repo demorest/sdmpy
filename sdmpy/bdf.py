@@ -92,12 +92,12 @@ class BDF(object):
     # type needs to be read from the headers while all others have
     # pre-set values...
     bin_dtype_size = {
-            'flags':           4, # INT32
-            'actualTimes':     8, # INT64
-            'actualDurations': 8, # INT64
-            'zeroLags':        4, # FLOAT32
-            'autoData':        4, # FLOAT32
-            'crossData':       4, # FLOAT32 but should be determined from file
+            'flags':           4,  # INT32
+            'actualTimes':     8,  # INT64
+            'actualDurations': 8,  # INT64
+            'zeroLags':        4,  # FLOAT32
+            'autoData':        4,  # FLOAT32
+            'crossData':       4,  # FLOAT32 but should be determined from file
             }
 
     # Basic data type for each array.  Note, does not necessarily
@@ -376,18 +376,25 @@ class BDFSpectralWindow(object):
     def name(self):
         return self.swbb + '-' + str(self.sw)
 
-    def npol(self, type):
+    def pols(self, type):
         """Return number of polarization array elements for the given data
         type (cross or auto)."""
         try:
             if type[0].lower() == 'c':
-                return len(self._attrib['crossPolProducts'].split())
+                return self._attrib['crossPolProducts'].split()
             elif type[0].lower() == 'a':
-                # Good enough?
-                l = len(self._attrib['sdPolProducts'].split())
-                return 4 if l == 3 else l  # 3==4 in BDF math! :)
+                return self._attrib['sdPolProducts'].split()
         except KeyError:
             return 0
+
+    def npol(self, type):
+        """Return number of polarization array elements for the given data
+        type (cross or auto)."""
+        pols = self.pols(type=type)
+        if type[0].lower() == 'c':
+            return len(pols)
+        elif type[0].lower() == 'a':
+            return 4 if len(pols) == 3 else len(pols)  # 3==4 in BDF math! :)
 
     def dshape(self, type):
         """Return shape tuple of data array for this spectral window,
@@ -751,15 +758,15 @@ class BDFWriter(object):
         nsxl = self.sdmDataHeader.nsmap['xl']
         uid = self.sdmDataHeader.dataOID.attrib['{%s}href' % nsxl][5:]
         tophdr['Content-Location'] = ['http://evla.nrao.edu/wcbe/XSDM' + uid, ]
-        self.fp.write(tophdr.tostring() + '\n')
+        self.fp.write(bytes(tophdr.tostring() + '\n', 'utf-8'))
 
-        self.fp.write('--' + self.mb1 + '\n')
+        self.fp.write(bytes('--' + self.mb1 + '\n', 'utf-8'))
         xhdr = MIMEHeader()
         xhdr['Content-Type'] = ['text/xml', 'charset=utf-8']
         xhdr['Content-Location'] = ['sdmDataHeader.xml', ]
-        self.fp.write(xhdr.tostring() + '\n')
+        self.fp.write(bytes(xhdr.tostring() + '\n', 'utf-8'))
         self.fp.write(etree.tostring(self.sdmDataHeader,
-                                     standalone=True, encoding='utf-8') + '\n')
+                                     standalone=True, encoding='utf-8') + b'\n')
 
     def write_integration(self, bdf_int=None, mjd=None, interval=None,
                           data=None):
@@ -844,24 +851,24 @@ class BDFWriter(object):
         # TODO should check that data sizes match up with header info..
 
         # Now write it all out..
-        self.fp.write('--' + self.mb1 + '\n')
-        self.fp.write(tophdr.tostring()+'\n')
+        self.fp.write(bytes('--' + self.mb1 + '\n', 'utf-8'))
+        self.fp.write(bytes(tophdr.tostring()+'\n', 'utf-8'))
 
         # XML subheader part
-        self.fp.write('--' + self.mb2 + '\n')
-        self.fp.write(hdr.tostring() + '\n')
+        self.fp.write(bytes('--' + self.mb2 + '\n', 'utf-8'))
+        self.fp.write(bytes(hdr.tostring() + '\n', 'utf-8'))
         self.fp.write(subhdr_str)
 
         # Data parts
         for dtype in dtypes:
-            self.fp.write('\n--' + self.mb2 + '\n')
-            self.fp.write(mhdr[dtype].tostring() + '\n')
+            self.fp.write(bytes('\n--' + self.mb2 + '\n', 'utf-8'))
+            self.fp.write(bytes(mhdr[dtype].tostring() + '\n', 'utf-8'))
             self.fp.write(data[dtype])
 
         # Close out mime
-        self.fp.write('\n--' + self.mb2 + '--\n')
+        self.fp.write(bytes('\n--' + self.mb2 + '--\n', 'utf-8'))
         self.curidx += 1
 
     def close(self):
-        self.fp.write('--' + self.mb1 + '--\n')
+        self.fp.write(bytes('--' + self.mb1 + '--\n', 'utf-8'))
         self.fp.close()
