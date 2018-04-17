@@ -98,7 +98,7 @@ class BinaryTableUnpacker(object):
 
     @property
     def record_dtype(self):
-        return [(col[0], col[2], col[3]) for col in self.columns]
+        return [(str(col[0]), col[2], col[3]) for col in self.columns]
 
     def _blank_row(self, nrows=1):
         return numpy.zeros(nrows, dtype=self.record_dtype)
