@@ -15,6 +15,8 @@ def unpacker(sdmtable):
     # not worth it given the small number of binary tables.
     if sdmtable.name == 'SysPower':
         return SysPowerUnpacker(sdmtable)
+    elif sdmtable.name == 'Pointing':
+        return PointingUnpacker(sdmtable)
     else:
         raise RuntimeError("Unknown binary table type: '%s'" % sdmtable.name)
 
@@ -26,9 +28,11 @@ class BinaryTableUnpacker(object):
     SysPowerUnpacker for the SysPower table."""
 
     # Unpackers for various binary data types
+    _unpack_byte = struct.Struct('>b')
     _unpack_int = struct.Struct('>i')
     _unpack_long = struct.Struct('>q')
     _unpack_float = struct.Struct('>f')
+    _unpack_double = struct.Struct('>d')
 
     # Column definitions go in derived classes, see SysPowerUnpacker
     # below for an example.
@@ -56,7 +60,7 @@ class BinaryTableUnpacker(object):
         self._pos += nbytes
         return result
 
-    def _get_val(self, dtype, optional=False, array=False):
+    def _get_val(self, dtype, optional=False, arraydims=()):
         # Unpack one value of the specified type from the table,
         # and advance the position pointer appropriately.  dtype
         # uses values compatible with numpy, ie i4, f4, etc.
@@ -67,6 +71,10 @@ class BinaryTableUnpacker(object):
             unpack = self._unpack_long
         elif dtype == 'f4':
             unpack = self._unpack_float
+        elif dtype == 'f8':
+            unpack = self._unpack_double
+        elif dtype == 'b':
+            unpack = self._unpack_byte
         elif dtype[0] == 'S':
             unpack = None
             string_val = True
@@ -81,14 +89,20 @@ class BinaryTableUnpacker(object):
                         return ''
                     else:
                         return 0
-            if array or string_val:
+            ndim = len(arraydims)
+            if string_val: 
+                ndim = 1
+            dims = []
+            for i in range(ndim):
                 nval = self._unpack_int.unpack_from(self._readtab(4))[0]
+                dims.append(nval)
             if string_val:
-                return self._readtab(nval)
+                return self._readtab(dims[0])
             dsize = unpack.size
-            if array:
-                return [unpack.unpack_from(self._readtab(dsize))[0]
-                        for i in range(nval)]
+            if ndim:
+                ntot = numpy.product(dims)
+                return numpy.array([unpack.unpack_from(self._readtab(dsize))[0]
+                        for i in range(ntot)]).reshape(dims)
             else:
                 return unpack.unpack_from(self._readtab(dsize))[0]
         except struct.error:
@@ -112,12 +126,16 @@ class BinaryTableUnpacker(object):
             colname = col[0]
             isoptional = col[1]
             coldtype = col[2]
-            isarray = col[3] != ()
-            val = self._get_val(coldtype, isoptional, isarray)
+            arraydims = col[3]
+            val = self._get_val(coldtype, isoptional, arraydims)
             if val is None:
                 return None
-            if isarray:
-                row[0][colname][:len(val)] = val
+            if arraydims != ():
+                # This will raise an error if the dims assumed in the 
+                # table column definition do not match what is actually
+                # in the file.  Should probably be made more robust but
+                # all examples in the wild so far should be predictable.
+                row[0][colname][:] = val
             else:
                 row[0][colname] = val
         return row
@@ -172,3 +190,33 @@ class SysPowerUnpacker(BinaryTableUnpacker):
             ("switchedPowerSum",        True, 'f4', (2,)),
             ("requantizerGain",         True, 'f4', (2,)),
             ]
+
+class PointingUnpacker(BinaryTableUnpacker):
+    """Unpacker for binary Pointing table.  Most angle params are specified
+    as 2-D arrays of angles but assumes VLA data only ever comes with 1x2 arrays
+    for these."""
+
+    # See description in SysPowerUnpacker above
+
+    columns = [                                   # type in the java code:
+            ("antennaId",         False, 'S32', ()),   # string
+            ("timeMid",           False, 'i8', ()),    # arraytimeinterval (1/2)
+            ("interval",          False, 'i8', ()),    # arraytimeinterval (2/2)
+            ("numSample",         False, 'i4', ()),    # int
+            ("encoder",           False, 'f8', (1,2)), # angle2darray
+            ("pointingTracking",  False, 'b', ()),     # bool
+            ("usePolynomials",    False, 'b', ()),     # bool
+            ("timeOrigin",        False, 'i8', ()),    # arraytime
+            ("numTerm",           False, 'i4', ()),    # int
+            ("pointingDirection", False, 'f8', (1,2)), # angle2darray
+            ("target",            False, 'f8', (1,2)), # angle2darray
+            ("offset",            False, 'f8', (1,2)), # angle2darray
+            ("pointingModelId",   False, 'i4', ()),    # int
+            ("overTheTop",                True, 'b', ()),     # bool
+            ("sourceOffset",              True, 'f8', (1,2)), # angle2darray
+            ("sourceOffsetReferenceCode", True, 'i4', ()),    # ? not used at VLA
+            ("sourceOffsetEquinox",       True, 'i4', ()),    # ? not used at VLA
+            ("sampledTimeInterval",       True, 'i4', ()),    # ? not used at VLA
+            ("atmosphericCorrection",     True, 'f8', (1,2)), # angle2darray
+            ]
+
