@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/realfastvla/sdmpy.svg?branch=master)](https://travis-ci.org/realfastvla/sdmpy)
+[![codecov](https://codecov.io/gh/realfastvla/sdmpy/branch/master/graph/badge.svg)](https://codecov.io/gh/realfastvla/sdmpy)
 
 sdmpy -- P. Demorest, 2015/03
 
