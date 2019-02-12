@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sdmpy',
-    version='1.70.2',
+    version='1.70.3',
     description='Python for ALMA/VLA Science Data Model',
     author='Paul Demorest',
     author_email='pdemores@nrao.edu',
