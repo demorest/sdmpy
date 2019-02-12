@@ -179,6 +179,8 @@ class SDMTable(object):
         return self._table.ContainerEntity.get('entityId')
 
     def __getitem__(self, key):
+        if self.__len__() == 0:
+            raise IndexError(key)
         if type(key) == int:
             return self._table.row[key]
         else:
