@@ -55,6 +55,7 @@ for scan in sdm.scans():
     bdfout = sdmpy.bdf.BDFWriter(bdfoutpath, fname=os.path.basename(scan.bdf_fname), bdf=bdf)
     bdfout.write_header()
     bar = progressbar.ProgressBar()
+    zeroed = 0
     for i in bar(range(nout)):
         bdfint = bdf[i*navg]
         count = {}
@@ -76,12 +77,16 @@ for scan in sdm.scans():
             bdfint.data[dtype][np.where(count[dtype]==0.0)] = 0.0
             if zerofrac > args.flagfrac:
                 bdfint.data[dtype] = 0.0  # flag data if zeros exceed limit
+                zeroed += 0
 
         # update timestamp and interval
         bdfint.sdmDataSubsetHeader.schedulePeriodTime.time += delta_t
         bdfint.sdmDataSubsetHeader.schedulePeriodTime.interval *= navg
         bdfout.write_integration(bdfint)
     bdfout.close()
+
+    if args.flagfrac < 1.:
+        print("Flagged {0} integrations for zerofrac exceeding flagfrac")
 
     # update SDM entries with corect number of integrations, etc.
     scan._main.numIntegration = nout
