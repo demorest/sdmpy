@@ -18,11 +18,15 @@ par.add_argument("-e", "--ext", default="avg",
         help="extension to add to output SDM [%(default)s]")
 par.add_argument("-b", "--bdfdir", default="",
         help="path to BDFs (optional)")
+par.add_argument("-f", "--flagfrac", default=1.0,
+        help="Flag integrations with zero fraction greater than flagfrac")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
 
 sdm = sdmpy.SDM(sdmname,bdfdir=args.bdfdir)
+
+assert (args.flagfrac >= 0.) and (args.flagfrac <= 1.)
 
 tavg = args.time # in seconds
 
@@ -58,14 +62,21 @@ for scan in sdm.scans():
             bdfint.data[dtype] = bdfint.data[dtype].copy()
             count[dtype] = np.zeros(bdfint.data[dtype].shape)
             count[dtype] += bdfint.data[dtype] != 0.0
-        for j in range(1,navg):
+        zerofrac = 0.
+        for j in range(1, navg):
+            if args.flagfrac < 1.0:
+                zerofrac += bdf[i*navg+j].zerofraction()  # default looks at cross
             for dtype in bdfint.data.keys():
                 dat = bdf[i*navg+j].data[dtype]
                 bdfint.data[dtype] += dat
                 count[dtype] += dat != 0.0
+        zerofrac /= navg
         for dtype in bdfint.data.keys():
             bdfint.data[dtype] /= count[dtype]
             bdfint.data[dtype][np.where(count[dtype]==0.0)] = 0.0
+            if zerofrac > args.flagfrac:
+                bdfint.data[dtype] = 0.0  # flag data if zeros exceed limit
+
         # update timestamp and interval
         bdfint.sdmDataSubsetHeader.schedulePeriodTime.time += delta_t
         bdfint.sdmDataSubsetHeader.schedulePeriodTime.interval *= navg
