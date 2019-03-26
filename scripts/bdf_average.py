@@ -18,7 +18,7 @@ par.add_argument("-e", "--ext", default="avg",
         help="extension to add to output SDM [%(default)s]")
 par.add_argument("-b", "--bdfdir", default="",
         help="path to BDFs (optional)")
-par.add_argument("-f", "--flagfrac", default=1.0,
+par.add_argument("-f", "--flagfrac", default=1.0, type=float,
         help="Flag integrations with zero fraction greater than flagfrac")
 args = par.parse_args()
 
@@ -76,8 +76,8 @@ for scan in sdm.scans():
             bdfint.data[dtype] /= count[dtype]
             bdfint.data[dtype][np.where(count[dtype]==0.0)] = 0.0
             if zerofrac > args.flagfrac:
-                bdfint.data[dtype] = 0.0  # flag data if zeros exceed limit
-                zeroed += 0
+                bdfint.data[dtype][:] = 0.0  # flag data if zeros exceed limit
+                zeroed += 1
 
         # update timestamp and interval
         bdfint.sdmDataSubsetHeader.schedulePeriodTime.time += delta_t
@@ -85,8 +85,8 @@ for scan in sdm.scans():
         bdfout.write_integration(bdfint)
     bdfout.close()
 
-    if args.flagfrac < 1.:
-        print("Flagged {0} integrations for zerofrac exceeding flagfrac")
+    if zeroed:
+        print("Flagged {0} integrations for zerofrac exceeding flagfrac.".format(zeroed))
 
     # update SDM entries with corect number of integrations, etc.
     scan._main.numIntegration = nout
