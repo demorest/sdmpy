@@ -50,6 +50,7 @@ def unroll_chans(data):
     return data
 
 for scan in sdm.scans():
+    if not scan.bdf.exists: continue
     if 'CALIBRATE_PHASE' in scan.intents:
         logging.info('processing cal scan %s' % scan.idx)
         # dims (bl,spw,bin,chan,pol)
