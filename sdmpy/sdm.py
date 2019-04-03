@@ -26,6 +26,7 @@ class SDM(object):
       path = path to SDM directory
       bdfdir = different directory to search for bdfs
       (optional, for pre-archive SDMs)
+      lazy = only read tables when requested
 
     Attributes:
       tables = list of tables
@@ -33,7 +34,7 @@ class SDM(object):
 
     SDM['TableName'] returns the relevant SDMTable object.
     """
-    def __init__(self, path='.', use_xsd=True, bdfdir=''):
+    def __init__(self, path='.', use_xsd=True, bdfdir='', lazy=False):
         parser = _sdm_parser if use_xsd else None
         self._tables = {}
         self._schemaVersion = {}
@@ -42,17 +43,25 @@ class SDM(object):
         self.bdfdir = bdfdir
         self._asdmtree = objectify.parse(path+'/ASDM.xml', parser)
         self.asdm = self._asdmtree.getroot()
+        self.use_xsd = use_xsd
+        self._asdmtables = []
         for tab in self.asdm.Table:
-            self._schemaVersion[tab.Name] = tab.Entity.attrib['schemaVersion']
+            tabname = str(tab.Name)
+            self._schemaVersion[tabname] = tab.Entity.attrib['schemaVersion']
             # TODO, compare schema versions, relax parsing if they don't match
-            self._tables[tab.Name] = sdmtable(tab.Name, path, use_xsd=use_xsd)
+            self._asdmtables.append(tabname)
+            if not lazy: 
+                self._tables[tabname] = sdmtable(tabname, path, use_xsd=use_xsd)
 
     @property
     def tables(self):
         """Return the list of table names"""
-        return list(self._tables.keys())
+        #return list(self._tables.keys())
+        return self._asdmtables
 
     def __getitem__(self, key):
+        if key in self._asdmtables and not key in self._tables.keys():
+            self._tables[key] = sdmtable(key, self.path, use_xsd=self.use_xsd)
         return self._tables[key]
 
     def scan(self, idx, subidx=1):
