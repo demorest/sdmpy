@@ -110,7 +110,7 @@ for scan in sdm.scans():
             dat0 = bdfint.get_data(type=dtype)
             # loop over the delays, copy data
             for ii in uniq_delays_samp:
-                if (int0+ii)>bdf.numIntegration: continue
+                if (int0+ii)>=bdf.numIntegration: continue
                 dat = bdf[int(int0+ii)].get_data(type=dtype)
                 fidx = np.where(delays_samp == ii)
                 # May be a more clever numpy-ish way to do this?
