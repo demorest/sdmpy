@@ -24,7 +24,7 @@ args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
 
-sdm = sdmpy.SDM(sdmname)
+sdm = sdmpy.SDM(sdmname,use_xsd=False)
 
 # dict of scan/integrations to keep
 #keep = {'7': 9514,}
@@ -97,7 +97,8 @@ for scan in sdm.scans():
 
         if offs==0:
             t0 = int_time - int_interval/2
-            bdfout = sdmpy.bdf.BDFWriter(bdfoutname, bdf=bdf)
+            bdfout = sdmpy.bdf.BDFWriter(bdfoutpath, 
+                    fname=os.path.basename(scan.bdf_fname), bdf=bdf)
             bdfout.sdmDataHeader.startTime = t0
             bdfout.write_header()
 
