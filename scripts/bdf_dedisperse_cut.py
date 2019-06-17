@@ -24,7 +24,7 @@ args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
 
-sdm = sdmpy.SDM(sdmname)
+sdm = sdmpy.SDM(sdmname,use_xsd=False)
 
 # dict of scan/integrations to keep
 #keep = {'7': 9514,}
@@ -97,7 +97,8 @@ for scan in sdm.scans():
 
         if offs==0:
             t0 = int_time - int_interval/2
-            bdfout = sdmpy.bdf.BDFWriter(bdfoutname, bdf=bdf)
+            bdfout = sdmpy.bdf.BDFWriter(bdfoutpath, 
+                    fname=os.path.basename(scan.bdf_fname), bdf=bdf)
             bdfout.sdmDataHeader.startTime = t0
             bdfout.write_header()
 
@@ -109,7 +110,7 @@ for scan in sdm.scans():
             dat0 = bdfint.get_data(type=dtype)
             # loop over the delays, copy data
             for ii in uniq_delays_samp:
-                if (int0+ii)>bdf.numIntegration: continue
+                if (int0+ii)>=bdf.numIntegration: continue
                 dat = bdf[int(int0+ii)].get_data(type=dtype)
                 fidx = np.where(delays_samp == ii)
                 # May be a more clever numpy-ish way to do this?
