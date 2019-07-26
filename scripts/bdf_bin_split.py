@@ -23,6 +23,8 @@ par.add_argument("-p", "--period", type=float, default=1.0,
         help="pulse period (s) [%(default)s]")
 par.add_argument("-m", "--meansub", action="store_true",
         help="subtract period-averaged value from each bin")
+par.add_argument("-e", "--extend", action="store_true",
+        help="extend 1-bin scans across all output bins")
 par.add_argument("-s", "--scan", action="append", default=[],
         help="process this scan (multiple -s allowed)")
 par.add_argument("-C", "--cal", action="store_true",
@@ -48,7 +50,7 @@ try:
 except IndexError:
     bdf0 = sdm.scan(1).bdf
 #nbin = bdf0.spws[0].numBin
-nbin = max([s.bdf.spws[0].numBin for s in sdm.scans()])
+nbin = max([s.bdf.spws[0].numBin for s in sdm.scans() if s.bdf.exists])
 
 # Read a template file
 tmpl = None
@@ -97,14 +99,22 @@ for scan in sdm.scans():
     except IOError:
         print "Error reading bdf for scan %s, skipping" % (scan.idx,)
         continue
+    if not scan.bdf.exists:
+        print "Missing bdf for scan %s, skipping" % (scan.idx,)
+        continue
     if args.cal and bdf.spws[0].numBin != 2:
         print "nbin!=2 for scan %s, skipping" % (scan.idx,)
         continue
-    # Array of dims (nspw,nchan) giving freqs in MHz
+    # Get number of bins in scan, set up output nbin
     nbin_scan = bdf.spws[0].numBin
+    if args.extend and nbin_scan==1:
+        nbin_out = nbin
+    else:
+        nbin_out = nbin_scan
+    # Array of dims (nspw,nchan) giving freqs in MHz
     freqs_spw = scan.freqs()/1e6
     bdfoutname = map(lambda x: x+'/'+os.path.basename(scan.bdf_fname), 
-            bdfoutpath[:nbin_scan+1])
+            bdfoutpath[:nbin_out+1])
     # Set up for output BDFs, copying header info from the input BDF
     # and changing nbin to 1.
     bdfout = map(lambda x: sdmpy.bdf.BDFWriter('',x,bdf=bdf), bdfoutname)
@@ -205,7 +215,10 @@ for scan in sdm.scans():
                             binint[ibin+1].data[dtype] -= binint[0].data[dtype]
 
         for ibin in range(len(bdfout)):
-            bdfout[ibin].write_integration(binint[ibin])
+            if args.extend and nbin_scan==1:
+                bdfout[ibin].write_integration(binint[0])
+            else:
+                bdfout[ibin].write_integration(binint[ibin])
                 
     for b in bdfout: b.close()
 
