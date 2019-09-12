@@ -11,7 +11,8 @@ import numpy as np
 from numpy.fft import fft, ifft
 np.errstate(divide='ignore')
 import sdmpy
-from sdmpy.pulsar import dedisperse_array
+import tempo_utils
+from sdmpy.pulsar import dedisperse_array, sdmpulsar_to_polyco
 import progressbar
 import argparse
 
@@ -33,6 +34,8 @@ par.add_argument("-A", "--fixautos", action="store_true",
         help="attempt to fix sign of autocorr poln products")
 par.add_argument("-T", "--template", type=str, default='',
         help="convolve with ascii template given in filename")
+par.add_argument("-E", "--ephemeris", type=str, default='',
+        help="rephase using specified parfile")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
@@ -113,6 +116,14 @@ for scan in sdm.scans():
         nbin_out = nbin_scan
     # Array of dims (nspw,nchan) giving freqs in MHz
     freqs_spw = scan.freqs()/1e6
+    # If we're rephasing, get the old and new polycos
+    if args.ephemeris and (scan.pulsar is not None):
+        polys_old = sdmpulsar_to_polyco(scan.pulsar)
+        polys_new = tempo_utils.polycos.generate_from_polyco(
+                args.ephemeris, polys_old)
+        do_rephase = True
+    else:
+        do_rephase = False
     bdfoutname = map(lambda x: x+'/'+os.path.basename(scan.bdf_fname), 
             bdfoutpath[:nbin_out+1])
     # Set up for output BDFs, copying header info from the input BDF
@@ -179,11 +190,20 @@ for scan in sdm.scans():
             dataz = dataspw!=0.0
             dataz_m = dataspw.all(2,keepdims=True)
             data *= dataz_m
+
+            # get phase shift if rephasing
+            if do_rephase:
+                # TODO verify sign
+                dphase = polys_old.phase(fullint.time) \
+                        - polys_new.phase(fullint.time)
+            else:
+                dphase = 0.0
             
             # Dedisperse if needed
             if args.dm!=0.0 and nbin_scan>1:
                 dedisperse_array(data, args.dm, freqs_spw, args.period,
-                        bin_axis=2, freq_axis=3, spw_axis=1)
+                        bin_axis=2, freq_axis=3, spw_axis=1,
+                        phase_shift=dphase)
 
             # Flip sign of autocorr cross-pol imag component in 
             # every other spw.  Note I don't think there is a 
