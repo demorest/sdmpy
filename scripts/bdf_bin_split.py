@@ -193,9 +193,8 @@ for scan in sdm.scans():
 
             # get phase shift if rephasing
             if do_rephase:
-                # TODO verify sign
-                dphase = polys_old.phase(fullint.time) \
-                        - polys_new.phase(fullint.time)
+                dphase = polys_new.phase(fullint.time) \
+                        - polys_old.phase(fullint.time)
             else:
                 dphase = 0.0
             
