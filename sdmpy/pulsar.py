@@ -170,17 +170,18 @@ def rotate_phase_fft(data, turns, axis=1):
 
 
 def dedisperse_array(data, dm, freq, period, bin_axis=1, freq_axis=2,
-                     spw_axis=None):
+                     spw_axis=None, phase_shift=0.0):
     """
     Dedisperse a generic array of data, of which one axis represents an
     entire turn of pulse phase, even sampled into bins.  freq should be an
     array giving the frequencies in MHz.  Up to two separate freq axes are
     allowed, given by the spw_axis and freq_axis arguments.  If spw_axis is
     None (not used), freq should be a 1-D array of freqs.  If spw_axis is
-    set, freq should have dims (nspw, nchan).
+    set, freq should have dims (nspw, nchan).  An additional pulse phase 
+    shift can be included via phase_shift (turns).
     """
 
-    dp = -dm_delay(dm, freq)/period
+    dp = -dm_delay(dm, freq)/period + phase_shift
     nchan = data.shape[freq_axis]
     fslice = [slice(None), ] * len(data.shape)
     fshape = list(data.shape)
@@ -201,7 +202,7 @@ def dedisperse_array(data, dm, freq, period, bin_axis=1, freq_axis=2,
                 dtmp = data.take(ichan, axis=freq_axis).reshape(fshape)
             else:
                 dtmp = dtmp0.take([ichan, ], axis=freq_axis).reshape(fshape)
-            data[fslice] = rotate_phase(dtmp, dp[ispw, ichan],
+            data[tuple(fslice)] = rotate_phase(dtmp, dp[ispw, ichan],
                                         axis=bin_axis).squeeze()
 
 # def dedisperse(scan,dm,period=None,bar=lambda x: x):
