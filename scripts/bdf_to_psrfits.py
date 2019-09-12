@@ -103,6 +103,7 @@ for scan in sdm.scans():
         bdf = scan.bdf
         arch.resize(arch.get_nsubint() + bdf.numIntegration - 1)
         for isub in range(1,bdf.numIntegration):
+            logging.info("Processing subint %d/%d" % (isub,bdf.numIntegration))
             bdfsub = bdf[isub]
             dpsr = bdfsub.get_data()[...,[0,-1]]
             dpsr = unroll_chans(dpsr)
