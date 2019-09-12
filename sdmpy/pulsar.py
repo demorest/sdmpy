@@ -8,8 +8,11 @@ import warnings
 import numpy as np
 from .scan import sdmarray
 
-# TODO maybe reconsider this dependency, although the MJD class is convenient
-from psrchive import MJD, polyco
+try:
+    import psrchive
+except ImportError:
+    psrchive = None
+
 import tempo_utils
 import tempfile
 def sdmpulsar_to_polyco(r,fmt='tempo_utils'):
@@ -36,10 +39,12 @@ def sdmpulsar_to_polyco(r,fmt='tempo_utils'):
         return p
 
     if fmt=='psrchive':
+        if psrchive is None:
+            raise RuntimeError("psrchive-format polycos requires psrchive")
         tmp = tempfile.NamedTemporaryFile()
         tmp.write(p.as_string())
         tmp.flush()
-        pp = polyco(tmp.name)
+        pp = psrchive.polyco(tmp.name)
         tmp.close()
         return pp
 
@@ -65,7 +70,7 @@ def _get_epoch_period(mjd):
         _bin_epochs = []
         _bin_periods = []
         for l in open(_bin_file, 'rb'):
-            # _bin_epochs += [MJD(l.split()[0]),]
+            # _bin_epochs += [psrchive.MJD(l.split()[0]),]
             # _bin_periods += [float(l.split()[1]),]
             if l.startswith('epoch '):
                 epoch_clk = int(l.split()[1])
@@ -73,7 +78,7 @@ def _get_epoch_period(mjd):
                 mjd_frac = (epoch_clk % _clk_per_day)/float(_clk_per_day)
             elif l.startswith('target period '):
                 p = float(l.split()[3])/float(_clk_per_sec)
-                _bin_epochs += [MJD(mjd_int, mjd_frac), ]
+                _bin_epochs += [psrchive.MJD(mjd_int, mjd_frac), ]
                 _bin_periods += [p, ]
 
     # Assumes input is a psrchive MJD.
@@ -103,7 +108,7 @@ class BinLog(object):
     def _clk_to_mjd(cls, clk):
         mjd_int = clk//cls._clk_per_day + cls._mjd1970
         mjd_frac = (clk % _clk_per_day)/float(_clk_per_day)
-        return MJD(mjd_int, mjd_frac)
+        return psrchive.MJD(mjd_int, mjd_frac)
 
     def _read(self):
         # Actually read the file
