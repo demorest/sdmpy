@@ -5,6 +5,7 @@ import logging
 import sdmpy
 import sdmpy.pulsar
 import psrchive
+import tempo_utils
 
 import argparse
 par = argparse.ArgumentParser(
@@ -24,6 +25,8 @@ par.add_argument("-p", "--period", type=float, default=0.0,
         help="period data were folded (s) [auto]")
 par.add_argument("-P", "--polycos", action="store_true",
         help="use polyco file to adjust timestamps [false]")
+par.add_argument("-H", "--hanning", action="store_true",
+        help="apply Hanning smoothing")
 args = par.parse_args()
 
 logging.basicConfig(format="%(asctime)-15s %(levelname)8s %(message)s", 
@@ -56,6 +59,8 @@ for scan in sdm.scans():
         # dims (bl,spw,bin,chan,pol)
         dcal = scan.bdf.get_data(scrunch=True)[...,[0,-1]].mean(2,
                 keepdims=True)
+        if args.hanning:
+            sdmpy.calib.hanning(dcal,axis=3)
         dcal = unroll_chans(dcal)
         gcal = sdmpy.calib.gaincal(dcal,axis=0,ref=1)
     elif 'OBSERVE_TARGET' in scan.intents:
@@ -90,6 +95,11 @@ for scan in sdm.scans():
             if scan.pulsar is not None:
                 polys = sdmpy.pulsar.sdmpulsar_to_polyco(scan.pulsar,
                         fmt='psrchive')
+                # Used for testing rephasing:
+                #polys0 = sdmpy.pulsar.sdmpulsar_to_polyco(scan.pulsar)
+                #polys1 = tempo_utils.polycos.generate_from_polyco(
+                #        "/users/pdemores/tzpar/B1937+21.par",
+                #        polys0)
                 logging.info('Read polycos from SDM Pulsar table')
             else:
                 polycofile = '%s/%s.%d.polyco' % (binlog._logdir,
@@ -106,6 +116,8 @@ for scan in sdm.scans():
             logging.info("Processing subint %d/%d" % (isub,bdf.numIntegration))
             bdfsub = bdf[isub]
             dpsr = bdfsub.get_data()[...,[0,-1]]
+            if args.hanning:
+                sdmpy.calib.hanning(dcal,axis=3)
             dpsr = unroll_chans(dpsr)
             sdmpy.calib.applycal(dpsr,gcal,phaseonly=True)
             dpsr = np.ma.masked_array(dpsr,dpsr==0.0)
@@ -122,20 +134,23 @@ for scan in sdm.scans():
                 if (binlog is not None) or (polys is not None):
                     # Apply polyco time adjust
                     if args.polycos and polys is not None:
+                        p = polys.period(epoch_bdf)
                         dt = (polys.period(epoch_bdf) 
                                 * polys.phase(epoch_bdf).fracturns())
                         epoch = epoch_bdf - dt
-                        p = 0.0
                     else:
                         (epoch,p,dt) = binlog.epoch_period(epoch_bdf)
                 else:
                     (epoch,p,dt) = sdmpy.pulsar._get_epoch_period(epoch_bdf)
                 logging.info('Using epoch/period from dt=%.3fs' % dt)
 
-            # These were used for testing dedispersion:
-            #sdmpy.pulsar._dedisperse_array(mpsr, args.dm, freqs, p,
-            #        bin_axis=0,freq_axis=1)
-            #sdmpy.pulsar._dedisperse_array(mpsr, args.dm, freqs_spw, p,
+            # These were used for testing dedispersion/rephasing:
+            ## This sign is correct:
+            #dphase = polys1.phase(bdfsub.time) - polys0.phase(bdfsub.time)
+            #logging.warning("Testing rephasing p=%.6f dphase=%.3f"%(p,dphase))
+            #sdmpy.pulsar.dedisperse_array(mpsr, args.dm, freqs, p,
+            #        bin_axis=0, freq_axis=1, phase_shift=dphase)
+            #sdmpy.pulsar.dedisperse_array(mpsr, args.dm, freqs_spw, p,
             #        bin_axis=2,freq_axis=3,spw_axis=1)
             #mpsr = unroll_chans(mpsr)[0,...]
 

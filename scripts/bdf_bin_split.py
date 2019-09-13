@@ -13,6 +13,7 @@ np.errstate(divide='ignore')
 import sdmpy
 import tempo_utils
 from sdmpy.pulsar import dedisperse_array, sdmpulsar_to_polyco
+import sdmpy.calib
 import progressbar
 import argparse
 
@@ -36,6 +37,8 @@ par.add_argument("-T", "--template", type=str, default='',
         help="convolve with ascii template given in filename")
 par.add_argument("-E", "--ephemeris", type=str, default='',
         help="rephase using specified parfile")
+par.add_argument("-H", "--hanning", action="store_true",
+        help="Hanning-smooth before dedispersion")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
@@ -129,6 +132,11 @@ for scan in sdm.scans():
         if args.ephemeris:
             polys_new = tempo_utils.polycos.generate_from_polyco(
                     args.ephemeris, polys)
+            if len(polys_new)==0:
+                print "Error generating polycos from '%s'" % args.ephemeris
+                print "Tempo output:"
+                print polys_new.tempo_output
+                sys.exit(1)
             do_rephase = True
     if (nbin_scan>1 and args.dm!=0.0 and 
             polys is None and args.period is None):
@@ -202,6 +210,10 @@ for scan in sdm.scans():
             ## is not the case.
             # Axes should be (bl/ant, spw, bin, chan, pol)
             data = fullint.get_data(type=dtype).copy()
+
+            # Hanning-smooth if requested
+            if args.hanning:
+                sdmpy.calib.hanning(data,axis=3)
 
             # extend zeros along bin axis
             dataspw = data.sum(3,keepdims=True)
