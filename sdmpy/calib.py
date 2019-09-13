@@ -8,7 +8,6 @@ from numpy import linalg
 
 from .bdf import ant2bl, bl2ant
 
-
 # Some routines to derive simple calibration solutions directly
 # from data arrays.
 
@@ -77,3 +76,11 @@ def applycal(data, caldata, axis=0, phaseonly=False):
         calfac = 1.0 / (caldata.take(a1, axis=axis) * caldata.take(a2, axis=axis).conj())
         calfac[np.where(np.isfinite(calfac) is False)] = 0.0j
         data[dslice] *= calfac
+
+def hanning(data, axis=0):
+    """Apply hanning smoothing along the specified axis, typically this should
+    be the spectral channel axis.  Modifies data array in-place."""
+    data_pos = np.roll(data,1,axis=axis)
+    data_neg = np.roll(data,-1,axis=axis)
+    data += 0.5*(data_pos + data_neg)
+    data *= 0.5
