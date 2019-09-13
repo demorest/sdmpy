@@ -20,8 +20,8 @@ par = argparse.ArgumentParser()
 par.add_argument("sdmname", help="SDM to process")
 par.add_argument("-d", "--dm", type=float, default=0.0,
         help="dispersion measure (pc cm^-3) [%(default)s]")
-par.add_argument("-p", "--period", type=float, default=1.0,
-        help="pulse period (s) [%(default)s]")
+par.add_argument("-p", "--period", type=float, default=None,
+        help="override pulse period (s) [%(default)s]")
 par.add_argument("-m", "--meansub", action="store_true",
         help="subtract period-averaged value from each bin")
 par.add_argument("-e", "--extend", action="store_true",
@@ -94,9 +94,11 @@ for ibin in range(len(sdmout)):
     os.mkdir(bdfoutpath[ibin])
 
 for scan in sdm.scans():
+
     if len(args.scan) and scan.idx not in args.scan:
         continue
     print "Processing '%s' scan %s:" % (sdmname, scan.idx)
+
     try:
         bdf = scan.bdf
     except IOError:
@@ -108,26 +110,35 @@ for scan in sdm.scans():
     if args.cal and bdf.spws[0].numBin != 2:
         print "nbin!=2 for scan %s, skipping" % (scan.idx,)
         continue
+
     # Get number of bins in scan, set up output nbin
     nbin_scan = bdf.spws[0].numBin
     if args.extend and nbin_scan==1:
         nbin_out = nbin
     else:
         nbin_out = nbin_scan
+
     # Array of dims (nspw,nchan) giving freqs in MHz
     freqs_spw = scan.freqs()/1e6
-    # If we're rephasing, get the old and new polycos
-    if args.ephemeris and (scan.pulsar is not None):
-        polys_old = sdmpulsar_to_polyco(scan.pulsar)
-        polys_new = tempo_utils.polycos.generate_from_polyco(
-                args.ephemeris, polys_old)
-        do_rephase = True
-    else:
-        do_rephase = False
-    bdfoutname = map(lambda x: x+'/'+os.path.basename(scan.bdf_fname), 
-            bdfoutpath[:nbin_out+1])
+
+    # Get the polycos as needed
+    do_rephase = False
+    polys = None
+    if scan.pulsar is not None:
+        polys = sdmpulsar_to_polyco(scan.pulsar)
+        if args.ephemeris:
+            polys_new = tempo_utils.polycos.generate_from_polyco(
+                    args.ephemeris, polys)
+            do_rephase = True
+    if (nbin_scan>1 and args.dm!=0.0 and 
+            polys is None and args.period is None):
+        print "Missing pulse period info for scan %s, skipping" % (scan.idx,)
+        continue
+
     # Set up for output BDFs, copying header info from the input BDF
     # and changing nbin to 1.
+    bdfoutname = map(lambda x: x+'/'+os.path.basename(scan.bdf_fname), 
+            bdfoutpath[:nbin_out+1])
     bdfout = map(lambda x: sdmpy.bdf.BDFWriter('',x,bdf=bdf), bdfoutname)
     for ibdf in bdfout: 
         for bb in ibdf.sdmDataHeader.dataStruct.baseband:
@@ -144,11 +155,18 @@ for scan in sdm.scans():
             except KeyError:
                 pass
         ibdf.write_header()
+
     bar = progressbar.ProgressBar()
     for i in bar(range(bdf.numIntegration)):
         fullint = bdf[i]
         dtypes = fullint.data.keys()
         binint = []
+        if args.period is not None:
+            period = args.period
+        elif polys is not None:
+            period = 1.0/polys.freq(fullint.time)
+        else:
+            period = 0.0
         for ibin in range(len(bdfout)):
             # This is kind of a kludge to create a new BDFInt-like container
             # to hold the data that will be written out.  May want to clean
@@ -194,13 +212,13 @@ for scan in sdm.scans():
             # get phase shift if rephasing
             if do_rephase:
                 dphase = polys_new.phase(fullint.time) \
-                        - polys_old.phase(fullint.time)
+                        - polys.phase(fullint.time)
             else:
                 dphase = 0.0
             
             # Dedisperse if needed
             if args.dm!=0.0 and nbin_scan>1:
-                dedisperse_array(data, args.dm, freqs_spw, args.period,
+                dedisperse_array(data, args.dm, freqs_spw, period,
                         bin_axis=2, freq_axis=3, spw_axis=1,
                         phase_shift=dphase)
 
