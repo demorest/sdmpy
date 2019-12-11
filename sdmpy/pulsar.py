@@ -41,7 +41,7 @@ def sdmpulsar_to_polyco(r,fmt='tempo_utils'):
     if fmt=='psrchive':
         if psrchive is None:
             raise RuntimeError("psrchive-format polycos requires psrchive")
-        tmp = tempfile.NamedTemporaryFile()
+        tmp = tempfile.NamedTemporaryFile(mode='w+')
         tmp.write(p.as_string())
         tmp.flush()
         pp = psrchive.polyco(tmp.name)
