@@ -6,6 +6,12 @@ from io import open
 import numpy as np
 from numpy import linalg
 
+# Use CASA for UVW calc but don't require it
+try:
+    import casatools
+except ImportError:
+    casatools = None
+
 from .bdf import ant2bl, bl2ant
 
 # Some routines to derive simple calibration solutions directly
@@ -84,3 +90,51 @@ def hanning(data, axis=0):
     data_neg = np.roll(data,-1,axis=axis)
     data += 0.5*(data_pos + data_neg)
     data *= 0.5
+
+# Calculate uvw using CASA, mostly copied
+# from rfpipe's calc_uvw().
+def uvw(mjd, direction, antpos):
+    """Return an Nbaseline-x-3 array giving U,V,W in meters for
+    the given MJD, sky direction, and antenna positions.
+
+      direction is (ra,dec) in radians
+      antpos is Nant-by-3 array of antenna positions in meters.
+
+    This can be called on an sdmpy Scan object like:
+
+      uvw = sdmpy.calib.uvw(scan.startMJD, scan.coordinates, scan.positions)
+    """
+    if casatools is None:
+        raise RuntimeError("")
+    me = casatools.measures()
+    qa = casatools.quanta()
+    qq = qa.quantity
+    s = me.direction('J2000',
+            qq(direction[0],'rad'),
+            qq(direction[1],'rad'))
+    e = me.epoch('UTC', qq(mjd,'d'))
+    o = me.observatory('VLA')
+    me.doframe(o)
+    me.doframe(e)
+    me.doframe(s)
+    pos = np.array(antpos)
+    casapos = me.position('ITRF',
+            qq(pos[:,0],'m'),
+            qq(pos[:,1],'m'),
+            qq(pos[:,2],'m'))
+    bls = me.expand(me.touvw(me.asbaseline(casapos))[0])[1]['value']
+    bls = bls.reshape((-1,3))
+    # Original code from rfpipe:
+    #ord1 = [(i,j) for i in range(nants) for j in range(i+1, nants)] # CASA order
+    #ord2 = [(i,j) for j in range(nants) for i in range(j)]  # BDF order
+    nant = pos.shape[0]
+    nbl = bls.shape[0]
+    # Index into the output (BDF-style) array for each value 
+    # in the input (CASA-style) array.
+    oidx = [ant2bl((i,j)) for i in range(nant) for j in range(i+1,nant)]
+    uvw = 0.0*bls
+    for i in range(nbl):
+        uvw[oidx[i],:] = bls[i,:]
+    return uvw
+
+
