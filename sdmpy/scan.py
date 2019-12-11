@@ -218,6 +218,22 @@ class Scan(object):
         except AttributeError:
             return None
 
+    def times(self, src='bdf'):
+        """Return array of midpoint times (MJD) for all integrations in this 
+        scan.  If src=='sdm' these will be estimated from the information in
+        the SDM Subscan table.  If src=='bdf' they will be read from the BDF.
+        If precise times are needed, use the BDF values, but this requires
+        reading the BDF which can be slow."""
+        if src.lower()=='sdm':
+            t0 = self.startMJD
+            ni = int(self._subscan.numIntegration)
+            dt = (self.endMJD - self.startMJD) / ni
+            return t0 + (numpy.arange(ni)+0.5)*dt
+        elif src.lower()=='bdf':
+            return numpy.array([i.time for i in self.bdf])
+        else:
+            raise ValueError("Unknown data source: " + str(src))
+
     def freqs(self, spwidx='all'):
         """ Array of per-channel frequences for the given spectral window.
         If spwidx=='all', a nspw-by-nchan array will be returned giving all
