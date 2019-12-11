@@ -5,7 +5,13 @@ import logging
 import sdmpy
 import sdmpy.pulsar
 import psrchive
-import tempo_utils
+#import tempo_utils
+
+# Only needed for changing direction
+try:
+    import casatools
+except ImportError:
+    casatools = None
 
 import argparse
 par = argparse.ArgumentParser(
@@ -27,10 +33,33 @@ par.add_argument("-P", "--polycos", action="store_true",
         help="use polyco file to adjust timestamps [false]")
 par.add_argument("-H", "--hanning", action="store_true",
         help="apply Hanning smoothing")
+par.add_argument("-D", "--direction", type=str, default='',
+        help="rephase data to specified ra,dec")
 args = par.parse_args()
 
 logging.basicConfig(format="%(asctime)-15s %(levelname)8s %(message)s", 
         level=args.loglevel)
+
+if args.direction:
+    if casatools is None:
+        logging.error('Rephasing sky direction requires CASA')
+        sys.exit(1)
+    # Could use astropy/etc to parse coords but we already 
+    # require CASA..
+    qa = casatools.quanta()
+    ra, dec = args.direction.split(',')
+    bad_coords = False
+    try:
+        ra_deg = qa.quantity(ra)
+        dec_deg = qa.quantity(dec)
+    except RuntimeError:
+        bad_coords = True
+    if (ra_deg['unit']!='deg' or dec_deg['unit']!='deg'
+            or bad_coords):
+        logging.error('Error parsing coordinates, try eg 12h34m56.7s,+12d34m56.7s')
+        sys.exit(1)
+    ra_rad = qa.convert(ra_deg,'rad')['value']
+    dec_rad = qa.convert(dec_deg,'rad')['value']
 
 sdmname = args.sdmname.rstrip('/')
 sdm = sdmpy.SDM(sdmname, use_xsd=False)
@@ -86,7 +115,10 @@ for scan in sdm.scans():
         arch.set_centre_frequency(0.5*(freqs.max() + freqs.min()))
         arch.set_bandwidth(bw)
         arch.set_telescope('vla')
-        arch.set_state('PPQQ')
+        # This fails in python3 for unknown reasons:
+        #arch.set_state('PPQQ')
+        # Workaround:
+        arch.execute('e state=PPQQ')
 
         iout = 0
 
@@ -116,12 +148,29 @@ for scan in sdm.scans():
             logging.info("Processing subint %d/%d" % (isub,bdf.numIntegration))
             bdfsub = bdf[isub]
             dpsr = bdfsub.get_data()[...,[0,-1]]
+
             if args.hanning:
                 sdmpy.calib.hanning(dcal,axis=3)
+
             dpsr = unroll_chans(dpsr)
             sdmpy.calib.applycal(dpsr,gcal,phaseonly=True)
+
+            if args.direction:
+                # Rephase data to a new sky direction
+                logging.info("Rephasing sky direction")
+                uvw0 = sdmpy.calib.uvw(bdfsub.time, scan.coordinates, 
+                        scan.positions)
+                uvw1 = sdmpy.calib.uvw(bdfsub.time, (ra_rad, dec_rad),
+                        scan.positions)
+                dw_us = 1e6*(uvw1[:,2] - uvw0[:,2])/299792458.0
+                phs = np.outer(dw_us,freqs)
+                phs = phs.reshape((phs.shape[0],1,phs.shape[1],1))
+                dpsr *= np.exp(2.0j*np.pi*phs) # pos sign correct
+
+            # Sum over baselines:
             dpsr = np.ma.masked_array(dpsr,dpsr==0.0)
             mpsr = np.real(dpsr.mean(0))
+
             subint = arch.get_Integration(iout)
             epoch_bdf = psrchive.MJD(float(bdfsub.time)) # only approx
             if args.period>0.0:
