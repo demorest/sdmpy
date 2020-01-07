@@ -864,6 +864,8 @@ class BDFWriter(object):
         if self.len1 == 0:
             self.len1 = len(subhdr_str) + len(mhdr[dtypes[0]].tostring()) + 50
         nxpad = self.len1 - (len(subhdr_str) + len(mhdr[dtypes[0]].tostring()))
+        if nxpad < 0:
+            raise RuntimeError('nxpad(1)<0')
         mhdr[dtypes[0]]['X-pad'] = ['*'*nxpad, ]
 
         # Assumes at most 2 data types.. TODO make more general?
@@ -871,6 +873,8 @@ class BDFWriter(object):
             if self.len2 == 0:
                 self.len2 = len(mhdr[dtypes[1]].tostring()) + 12
             nxpad = self.len2 - len(mhdr[dtypes[1]].tostring())
+            if nxpad < 0:
+                raise RuntimeError('nxpad(2)<0')
             mhdr[dtypes[1]]['X-pad'] = ['*'*nxpad, ]
 
         # TODO should check that data sizes match up with header info..
