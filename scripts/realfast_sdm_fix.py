@@ -6,6 +6,7 @@
 import os, sys
 import numpy as np
 np.errstate(divide='ignore')
+import lxml.objectify
 import sdmpy
 import progressbar
 
@@ -55,6 +56,11 @@ if not args.sdmonly:
             else:
                 # Adjust timestamp
                 bdfint.sdmDataSubsetHeader.schedulePeriodTime.time = t0 + i*dt
+            # Remove all of lxml's pytype namespace cruft.  Could move this into
+            # BDFWriter class by default.
+            lxml.objectify.deannotate(bdfint.sdmDataSubsetHeader,
+                    pytype=True, xsi=False, xsi_nil=False,
+                    cleanup_namespaces=True)
             bdfout.write_integration(bdfint)
         bdfout.close()
 else:
