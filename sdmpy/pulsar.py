@@ -22,8 +22,13 @@ def sdmpulsar_to_polyco(r,fmt='tempo_utils'):
     fmjd = (int(r.refTime) - int(imjd*86400e9))/86400e9
     reffreq = float(r.refPulseFreq)
     refphase = float(r.refPhase)
-    tspan = float(r.timeSpan)
-    coeffs = sdmarray(r.phasePoly,float)
+    try:
+        tspan = float(r.timeSpan)
+        coeffs = sdmarray(r.phasePoly,float)
+    except AttributeError:
+        # Constant-period case
+        tspan = 2.5*86400e9
+        coeffs = [0.0,]
 
     p.imjd = imjd
     p.fmjd = fmjd
