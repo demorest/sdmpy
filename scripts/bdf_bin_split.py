@@ -39,6 +39,8 @@ par.add_argument("-E", "--ephemeris", type=str, default='',
         help="rephase using specified parfile")
 par.add_argument("-H", "--hanning", action="store_true",
         help="Hanning-smooth before dedispersion")
+par.add_argument("-M", "--memory", type=float, default=sdmpy.bdf._mmap_limit/(1<<30),
+        help="Memory buffer size for BDFs (GB) [%(default)s]")
 args = par.parse_args()
 
 sdmname = args.sdmname.rstrip('/')
@@ -57,6 +59,8 @@ except IndexError:
     bdf0 = sdm.scan(1).bdf
 #nbin = bdf0.spws[0].numBin
 nbin = max([s.bdf.spws[0].numBin for s in sdm.scans() if s.bdf.exists])
+
+sdmpy.bdf._mmap_limit = int(args.memory * (1<<30))
 
 # Read a template file
 tmpl = None
