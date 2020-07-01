@@ -176,6 +176,7 @@ class SDMTable(object):
             parser = None
         self._tree = objectify.parse(path+'/'+name+'.xml', parser)
         self._table = self._tree.getroot()
+        self._index = None
 
     @property
     def entityId(self):
@@ -187,27 +188,41 @@ class SDMTable(object):
         """Shortcut to ContainerEntity entityId"""
         return self._table.ContainerEntity.get('entityId')
 
+    @staticmethod
+    def _cf(key):
+        """Convert a key to the standard format for comparison."""
+        # For multi-key comparsions idtag will return a tuple.
+        # We'll require key to be a tuple also in this case,
+        # and need to explicitly check type to avoid problems
+        # with string (eg, dont want (1,1) to match '11').
+        # Otherwise everything gets converted to strings.
+        if isinstance(key, tuple):
+            return tuple(map(str, key))
+        else:
+            return str(key)
+
+    def index_rows(self):
+        """Build an index of keys to row numbers to speed up repeated
+        access to large tables.  This should not be used if the SDM will
+        be modified."""
+        self._index = {}
+        for i,r in enumerate(self._table.row):
+            self._index[self._cf(self.idtag(r))] = i
+
     def __getitem__(self, key):
         if self.__len__() == 0:
             raise IndexError(key)
         if type(key) == int:
             return self._table.row[key]
+        elif self._index is not None:
+            return self._table.row[self._index[self._cf(key)]]
         else:
             # Search through the table and find the first with
             # the matching id tag:
             for r in self._table.row:
                 try:
-                    tag = self.idtag(r)
-                    # For multi-key comparsions idtag will return a tuple.
-                    # We'll require key to be a tuple also in this case,
-                    # and need to explicitly check type to avoid problems
-                    # with string (eg, dont want (1,1) to match '11').
-                    if isinstance(tag, tuple):
-                        if isinstance(key, tuple) and list(map(str, tag)) == list(map(str, key)):
-                            return r
-                    else:
-                        if str(tag) == str(key):
-                            return r
+                    if self._cf(self.idtag(r)) == self._cf(key):
+                        return r
                 except AttributeError:
                     pass
             # No matching rows:
