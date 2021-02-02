@@ -31,8 +31,14 @@ def gaincal(data, axis=0, ref=0, avg=[], nit=3):
     (check, nant) = bl2ant(nbl)
     if check != 0:
         raise RuntimeError("Specified axis dimension (%d) is not a valid number of baselines" % nbl)
-    for a in avg:
-        data = data.mean(axis=a, keepdims=True)
+    if avg != []:
+        # Average, ignoring zeros
+        #norm = np.count_nonzero(data,axis=avg,keepdims=True) # requires numpy 1.19 for keepdims
+        norm = np.count_nonzero(data,axis=tuple(avg))
+        norm[np.where(norm==0)] = 1
+        data = data.sum(axis=tuple(avg), keepdims=True)
+        norm = norm.reshape(data.shape) # workaround lack of keepdims
+        data = data / norm
     tdata = np.zeros(data.shape[:axis]+data.shape[axis+1:]+(nant, nant),
                      dtype=data.dtype)
     for i in range(nbl):
@@ -72,7 +78,7 @@ def applycal(data, caldata, axis=0, phaseonly=False):
         raise RuntimeError("Number of antennas does not match (data=%d, caldata=%d)" % (nant_check, nant))
     if phaseonly:
         caldata = caldata.copy()/abs(caldata)
-        caldata[np.where(np.isfinite(caldata) is False)] = 0.0j
+        caldata[np.where(np.isfinite(caldata) == False)] = 0.0j
     # Modifies data in place.  Would it be better to return a calibrated
     # copy instead of touching the original?
     for ibl in range(nbl):
@@ -80,7 +86,7 @@ def applycal(data, caldata, axis=0, phaseonly=False):
         dslice = (slice(None),)*axis + (ibl,) + (slice(None),)*(ndim-axis-1)
         (a1, a2) = bl2ant(ibl)
         calfac = 1.0 / (caldata.take(a1, axis=axis) * caldata.take(a2, axis=axis).conj())
-        calfac[np.where(np.isfinite(calfac) is False)] = 0.0j
+        calfac[np.where(np.isfinite(calfac) == False)] = 0.0j
         data[dslice] *= calfac
 
 def hanning(data, axis=0):
