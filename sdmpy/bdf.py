@@ -129,6 +129,10 @@ class BDF(object):
     # match up with the sizes above due to how BDF defines the 'size'
     # attribute..
     bin_dtype = {
+            'flags':           numpy.int32,
+            'actualTimes':     numpy.int64,
+            'actualDurations': numpy.int64,
+            'zeroLags':        numpy.float32,
             'autoData':        numpy.float32,
             'crossData':       numpy.complex64,
             }
@@ -539,6 +543,12 @@ class BDFIntegration(object):
                                    'retrieved indivdually')
             dshape = (-1, len(self.spws)) + self.spws[0].dshape(type)
             return self.data[loc].reshape(dshape)
+        #elif ('A' in swpidx or 'C' in spwidx 
+        #        or 'B' in spwidx or 'D' in spwidx):
+        #    # TODO using "AC-1" syntax try to find the spw.  need
+        #    # to determine whether spw.sw is swindex or sbid..
+        #    # spw.swbb is name like AC_8BIT, B1D1_3BIT.
+        #    pass
         spw = self.spws[spwidx]
         if loc == 'crossData':
             offs = spw.cross_offset
