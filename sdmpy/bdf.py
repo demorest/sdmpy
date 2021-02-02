@@ -491,11 +491,13 @@ class BDFIntegration(object):
             bsize = bdf.bin_size[btype]  # size of the binary blob in bytes
             baxes = self.bin_axes[btype]
             # Determine outer step size for the array, either baselines
-            # antennas of baseline+antenna.  We can't apply the other
+            # antennas or baseline+antenna.  We can't apply the other
             # dimensions here because the number of elements can vary
             # per spw.
             if baxes[0] == 'BAL' and baxes[1] == 'ANT':
-                shape = (self.numBaseline+self.numAntenna, -1)
+                # In this case, cross and auto may have different step sizes
+                # so nothing we can do here.
+                shape = (-1,)
             elif baxes[0] == 'BAL':
                 shape = (self.numBaseline, -1)
             elif baxes[0] == 'ANT':
@@ -559,6 +561,13 @@ class BDFIntegration(object):
         dsize = spw.dsize(type)
         dshape = (-1,) + spw.dshape(type)
         return self.data[loc][:, offs:offs+dsize].reshape(dshape)
+
+    def get_meta(self, component, spwidx='all', corr='cross'):
+        """
+        Return metadata from the requested binary component (flags, actualDurations, 
+        actualTimes).  Not implemented yet.
+        """
+        raise NotImplementedError
 
     def zerofraction(self, spwidx='all', type='cross'):
         """Returns the fraction of data points in the integration that
