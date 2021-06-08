@@ -237,15 +237,21 @@ class BDF(object):
         # but seems convenient to do it here.
         cross_offset = 0
         auto_offset = 0
+        cross_meta_offset = 0
+        auto_meta_offset = 0
         self.spws = []
         for bb in self.sdmDataHeader.dataStruct.baseband:
             bbname = bb.attrib['name']
             self.basebands.append(bbname)
             for spw_elem in bb.spectralWindow:
                 # Build a list of spectral windows for each baseband
-                spw = BDFSpectralWindow(spw_elem, cross_offset, auto_offset)
+                spw = BDFSpectralWindow(spw_elem, cross_offset, auto_offset,
+                        cross_meta_offset=cross_meta_offset,
+                        auto_meta_offset=auto_meta_offset)
                 cross_offset += spw.dsize('cross')
                 auto_offset += spw.dsize('auto')
+                cross_meta_offset += spw.msize('cross')
+                auto_meta_offset += spw.msize('auto')
                 self.spws.append(spw)
 
     def get_integration(self, idx):
@@ -349,7 +355,7 @@ class BDFSpectralWindow(object):
 
     def __init__(self, spw_elem, cross_offset=None, auto_offset=None,
                  numBin=None, numSpectralPoint=None, sw=None, swbb=None,
-                 npol=None):
+                 npol=None, cross_meta_offset=None, auto_meta_offset=None):
         if spw_elem is not None:
             self._attrib = spw_elem.attrib
         else:
@@ -373,6 +379,9 @@ class BDFSpectralWindow(object):
 
         self.cross_offset = cross_offset
         self.auto_offset = auto_offset
+        self.cross_meta_offset = cross_meta_offset
+        self.auto_meta_offset = auto_meta_offset
+
 
     def to_xml(self):
         # Property?
@@ -436,6 +445,16 @@ class BDFSpectralWindow(object):
         """Return size of data array for this spectral window, in number of
         data elements (real for auto, complex for cross)."""
         return numpy.product(self.dshape(type))
+
+    def mshape(self, corr):
+        """Return shape tuple of metadata array for this spectral window
+        and correlation type (cross or auto)."""
+        return (self.numBin, len(self.pols(corr)))
+
+    def msize(self, corr):
+        """Return size of metadata array for this spectral window and
+        correlation type (cross or auto)."""
+        return numpy.product(self.mshape(corr))
 
     @staticmethod
     def dims_match(spwlist, type):
@@ -565,9 +584,44 @@ class BDFIntegration(object):
     def get_meta(self, component, spwidx='all', corr='cross'):
         """
         Return metadata from the requested binary component (flags, actualDurations, 
-        actualTimes).  Not implemented yet.
+        actualTimes).
         """
-        raise NotImplementedError
+        # Assume the axes BAL ANT BAB SPW BIN STO
+        # Note for this, npol==3 actually means 3 unlike for the data
+        
+        # Normalize corr input
+        csize = self.numBaseline*sum([spw.msize('cross') for spw in self.spws])
+        if corr[0].lower() == 'c':
+            corr = 'cross'
+            n0 = self.numBaseline
+            offs = 0
+            tsize = csize
+        elif corr[0].lower() == 'a':
+            corr = 'auto'
+            n0 = self.numAntenna
+            offs = csize
+            tsize = self.numAntenna*sum([spw.msize('auto') for spw in self.spws])
+        else:
+            raise RuntimeError('Unsupported data type')
+
+        data = self.data[component][offs:offs+tsize].reshape((n0,-1))
+
+        if spwidx='all':
+            if not BDFSpectralWindow.dims_match(self.spws, corr):
+                raise RuntimeError('BDFIntegration: ' +
+                                   'mixed array dimensions, spws must be ' +
+                                   'retrieved indivdually')
+            dshape = (n0, len(self.spws)) + self.spws[0].mshape(corr)
+            return data.reshape(dshape)
+
+        spw = self.spws[spwidx]
+        dshape = (n0,) + spw.mshape(corr)
+        dsize = spw.msize(corr)
+        if corr=='cross':
+            spwoffs = spw.cross_meta_offset
+        elif corr=='auto':
+            spwoffs = spw.auto_meta_offset
+        return data[:,spwoffs:spwoffs+dsize].reshape(dshape)
 
     def zerofraction(self, spwidx='all', type='cross'):
         """Returns the fraction of data points in the integration that
