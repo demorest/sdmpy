@@ -606,7 +606,7 @@ class BDFIntegration(object):
 
         data = self.data[component][offs:offs+tsize].reshape((n0,-1))
 
-        if spwidx='all':
+        if spwidx=='all':
             if not BDFSpectralWindow.dims_match(self.spws, corr):
                 raise RuntimeError('BDFIntegration: ' +
                                    'mixed array dimensions, spws must be ' +
