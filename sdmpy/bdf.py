@@ -329,6 +329,21 @@ class BDF(object):
             result /= float(nsubout)
         return result
 
+    def get_meta(self, component, spwidx='all', corr='cross', trange=None):
+        if trange is None:
+            i0 = 0
+            i1 = self.numIntegration
+        else:
+            i0 = trange[0]
+            i1 = trange[1]
+        nsubout = i1 - i0
+        subdat = self.get_integration(i0).get_meta(component, spwidx, corr)
+        dshape = (nsubout,) + subdat.shape
+        result = numpy.zeros(dshape, dtype=subdat.dtype)
+        for i in range(i0, i1):
+            dat = self.get_integration(i).get_meta(component, spwidx)
+            result[i-i0] = dat
+        return result
 
 class BDFSpectralWindow(object):
     """Class that represents spectral window information present in BDF files,
