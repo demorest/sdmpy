@@ -341,7 +341,7 @@ class BDF(object):
         dshape = (nsubout,) + subdat.shape
         result = numpy.zeros(dshape, dtype=subdat.dtype)
         for i in range(i0, i1):
-            dat = self.get_integration(i).get_meta(component, spwidx)
+            dat = self.get_integration(i).get_meta(component, spwidx, corr)
             result[i-i0] = dat
         return result
 
