@@ -94,12 +94,12 @@ class Scan(object):
     @property
     def source(self):
         """Source name as defined in SDM Scan table."""
-        return self._scan.sourceName
+        return str(self._scan.sourceName)
 
     @property
     def field(self):
         """Field name as defined in SDM Subscan table."""
-        return self._subscan.fieldName
+        return str(self._subscan.fieldName)
 
     @property
     def coordinates(self):
@@ -125,20 +125,20 @@ class Scan(object):
     @property
     def subintent(self):
         """Return the subscan intent."""
-        return self._subscan.subscanIntent
+        return str(self._subscan.subscanIntent)
 
     @property
     def antennas(self):
         """Return the list of antenna names for this scan."""
         sdm_ants = sdmarray(self._config.antennaId)
-        return [self.sdm['Antenna'][a].name for a in sdm_ants]
+        return [str(self.sdm['Antenna'][a].name) for a in sdm_ants]
 
     @property
     def stations(self):
         """Return the list of station names for this scan."""
         sdm_ants = sdmarray(self._config.antennaId)
         sdm_stns = [self.sdm['Antenna'][a].stationId for a in sdm_ants]
-        return [self.sdm['Station'][s].name for s in sdm_stns]
+        return [str(self.sdm['Station'][s].name) for s in sdm_stns]
 
     @property
     def positions(self):
@@ -183,7 +183,7 @@ class Scan(object):
     def spws(self):
         """ Return the list of spw names """
 
-        return [self.sdm['DataDescription'][dd_id].spectralWindowId
+        return [str(self.sdm['DataDescription'][dd_id].spectralWindowId)
                 for dd_id in sdmarray(self._config.dataDescriptionId)]
 
     @property
