@@ -97,7 +97,11 @@ class BinaryTableUnpacker(object):
                 nval = self._unpack_int.unpack_from(self._readtab(4))[0]
                 dims.append(nval)
             if string_val:
-                return self._readtab(dims[0])
+                val = self._readtab(dims[0])
+                # Return a str in python3
+                if val is not None and not isinstance(val,str):
+                    val = val.decode('utf-8')
+                return val
             dsize = unpack.size
             if ndim:
                 ntot = numpy.product(dims)
@@ -110,9 +114,18 @@ class BinaryTableUnpacker(object):
             # the table.
             return None
 
+    @staticmethod
+    def _type_conv(dtype):
+        # Hack to convert type strings, used to make sure we get a str object
+        # for strings in both py2 and py3.
+        if dtype[0] == 'S':
+            return (numpy.str, int(dtype[1:]))
+        else:
+            return dtype
+
     @property
     def record_dtype(self):
-        return [(str(col[0]), col[2], col[3]) for col in self.columns]
+        return [(str(col[0]), self._type_conv(col[2]), col[3]) for col in self.columns]
 
     def _blank_row(self, nrows=1):
         return numpy.zeros(nrows, dtype=self.record_dtype)
