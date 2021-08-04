@@ -82,7 +82,7 @@ class BinaryTableUnpacker(object):
             raise RuntimeError("Unknown data dtype (dtype='%s')" % dtype)
         try:
             if optional:
-                has_data = self._readtab(1) != '\0'
+                has_data = self._readtab(1) != b'\0'
                 if not has_data:
                     # Return some default values..
                     if string_val:
