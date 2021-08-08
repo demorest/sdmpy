@@ -6,12 +6,6 @@ from io import open
 import numpy as np
 from numpy import linalg
 
-# Use CASA for UVW calc but don't require it
-try:
-    import casatools
-except ImportError:
-    casatools = None
-
 from .bdf import ant2bl, bl2ant
 
 # Some routines to derive simple calibration solutions directly
@@ -97,9 +91,28 @@ def hanning(data, axis=0):
     data += 0.5*(data_pos + data_neg)
     data *= 0.5
 
+def uvw(mjd, direction, antpos, method="casa"):
+    """Return an Nbaseline-x-3 array giving U,V,W in meters for
+    the given MJD, sky direction, and antenna positions.
+
+      direction is (ra,dec) in radians
+      antpos is Nant-by-3 array of antenna positions in meters.
+      method can be "casa" or "astropy"
+
+    This can be called on an sdmpy Scan object like:
+
+      uvw = sdmpy.calib.uvw(scan.startMJD, scan.coordinates, scan.positions)
+    """
+    if method=="casa":
+        return _uvw_casa(mjd, direction, antpos)
+    elif method=="astropy":
+        return _uvw_astropy(mjd, direction, antpos)
+    else:
+        raise RuntimeError("uvw method '%s' unknown" % method)
+
 # Calculate uvw using CASA, mostly copied
 # from rfpipe's calc_uvw().
-def uvw(mjd, direction, antpos):
+def _uvw_casa(mjd, direction, antpos):
     """Return an Nbaseline-x-3 array giving U,V,W in meters for
     the given MJD, sky direction, and antenna positions.
 
@@ -110,8 +123,7 @@ def uvw(mjd, direction, antpos):
 
       uvw = sdmpy.calib.uvw(scan.startMJD, scan.coordinates, scan.positions)
     """
-    if casatools is None:
-        raise RuntimeError("")
+    import casatools
     me = casatools.measures()
     qa = casatools.quanta()
     qq = qa.quantity
@@ -143,4 +155,39 @@ def uvw(mjd, direction, antpos):
         uvw[oidx[i],:] = bls[i,:]
     return uvw
 
+def _uvw_astropy(mjd, direction, antpos):
+    """ Calculates and returns uvw in meters for a given time and pointing direction.
+    direction is (ra,dec) as tuple in radians.
+    Can optionally specify a telescope other than the VLA.
+    """
+    from astropy import coordinates, time
+
+    telescope = 'VLA'
+
+    phase_center = coordinates.SkyCoord(*direction, unit='rad', frame='icrs')
+
+    antpos = np.array(antpos)
+    antpos = coordinates.EarthLocation(x=antpos[:,0], y=antpos[:,1], z=antpos[:,2], unit='m')
+
+    datetime = time.Time(mjd,format='mjd')
+
+    tel_p, tel_v = coordinates.EarthLocation.of_site(telescope).get_gcrs_posvel(datetime)
+    antpos_gcrs = coordinates.GCRS(antpos.get_gcrs_posvel(datetime)[0],
+                                   obstime = datetime, obsgeoloc = tel_p,
+                                   obsgeovel = tel_v)
+
+    uvw_frame = phase_center.transform_to(antpos_gcrs).skyoffset_frame()
+    antpos_uvw = antpos_gcrs.transform_to(uvw_frame).cartesian
+
+    nant = len(antpos_uvw)
+    antpairs = [(i,j) for j in range(nant) for i in range(j)]
+    nbl = len(antpairs)
+    uvw = np.empty((nbl,3))
+    for ibl, ant in enumerate(antpairs):
+        bl = antpos_uvw[ant[1]] - antpos_uvw[ant[0]]
+        uvw[ibl,0] = bl.y.value
+        uvw[ibl,1] = bl.z.value
+        uvw[ibl,2] = bl.x.value
+
+    return uvw
 
