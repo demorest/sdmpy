@@ -73,14 +73,15 @@ def applycal(data, caldata, axis=0, phaseonly=False):
     if phaseonly:
         caldata = caldata.copy()/abs(caldata)
         caldata[np.where(np.isfinite(caldata) == False)] = 0.0j
+    icaldata = 1.0/caldata
+    icaldata[np.where(np.isfinite(icaldata) == False)] = 0.0j
     # Modifies data in place.  Would it be better to return a calibrated
     # copy instead of touching the original?
     for ibl in range(nbl):
         # Must be some cleaner way to do this..?
         dslice = (slice(None),)*axis + (ibl,) + (slice(None),)*(ndim-axis-1)
         (a1, a2) = bl2ant(ibl)
-        calfac = 1.0 / (caldata.take(a1, axis=axis) * caldata.take(a2, axis=axis).conj())
-        calfac[np.where(np.isfinite(calfac) == False)] = 0.0j
+        calfac =  icaldata.take(a1, axis=axis) * icaldata.take(a2, axis=axis).conj()
         data[dslice] *= calfac
 
 def hanning(data, axis=0):
@@ -190,4 +191,29 @@ def _uvw_astropy(mjd, direction, antpos):
         uvw[ibl,2] = bl.x.value
 
     return uvw
+
+def rephased_data(scan, radec, uvw_method="casa"):
+    """
+    Return all data for the scan, rephased to new coordinates.
+
+    radec = new (ra, dec) in radians
+    uvw_method = "casa" or "astropy"
+    """
+    freqs = scan.freqs().ravel() / 1e6
+    dat = None
+    for isub in range(scan.bdf.numIntegration):
+        bdfsub = scan.bdf[isub]
+        subdat = bdfsub.get_data().copy()
+        uvw0 = uvw(bdfsub.time, scan.coordinates, scan.positions, uvw_method)
+        uvw1 = uvw(bdfsub.time, radec, scan.positions, uvw_method)
+        dw_us = 1e6 * (uvw1[:,2] - uvw0[:,2])/299792458.0
+        phs = np.outer(dw_us,freqs).reshape((subdat.shape[0],subdat.shape[1],1,subdat.shape[3],1))
+        subdat *= np.exp(2.0j*np.pi*phs)
+        if dat is None:
+            dat = np.expand_dims(subdat,0)
+        else:
+            dat = np.concatenate((dat,np.expand_dims(subdat,0)),axis=0)
+    return dat
+
+
 
