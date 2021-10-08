@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='sdmpy',
-    version='1.71.0',
+    version='1.71.1',
     description='Python for ALMA/VLA Science Data Model',
     author='Paul Demorest',
     author_email='pdemores@nrao.edu',
@@ -21,5 +21,6 @@ setup(
              'scripts/bdf_dedisperse_cut.py',
              'scripts/bdf_to_psrfits.py',
              'scripts/realfast_sdm_fix.py',
+             'scripts/y1swpow.py',
              ]
 )
