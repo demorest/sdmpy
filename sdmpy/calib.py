@@ -48,7 +48,10 @@ def gaincal(data, axis=0, ref=0, avg=[], nit=3):
     # result = np.sqrt(w[...,-1]).T*v[...,-1].T
     result = np.sqrt(w).T*v.T
     # First axis is now antenna.. refer all phases to reference ant
-    result = (result*np.conj(result[ref])/np.abs(result[ref])).T
+    phi = np.angle(result[ref])
+    amp = np.abs(result[ref])
+    fac = (np.cos(phi) - 1.0j*np.sin(phi)) * (amp>0.0)
+    result = (result*fac).T 
     # TODO try to reduce number of transposes
     outdims = list(range(axis)) + [-1, ] + list(range(axis, ndim-1))
     return result.transpose(outdims)
@@ -71,9 +74,9 @@ def applycal(data, caldata, axis=0, phaseonly=False):
     if nant != nant_check:
         raise RuntimeError("Number of antennas does not match (data=%d, caldata=%d)" % (nant_check, nant))
     if phaseonly:
-        caldata = caldata.copy()/abs(caldata)
-        caldata[np.where(np.isfinite(caldata) == False)] = 0.0j
-    icaldata = 1.0/caldata
+        icaldata = np.abs(caldata)/caldata
+    else:
+        icaldata = 1.0/caldata
     icaldata[np.where(np.isfinite(icaldata) == False)] = 0.0j
     # Modifies data in place.  Would it be better to return a calibrated
     # copy instead of touching the original?
