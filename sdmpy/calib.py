@@ -87,6 +87,21 @@ def applycal(data, caldata, axis=0, phaseonly=False):
         calfac =  icaldata.take(a1, axis=axis) * icaldata.take(a2, axis=axis).conj()
         data[dslice] *= calfac
 
+def antarray(data, axis=0):
+    """
+    Convert a baseline array index into two antenna indices.  Makes a copy of the data.
+    """
+    ndim = len(data.shape)
+    nbl = data.shape[axis]
+    (check, nant) = bl2ant(nbl)
+    if check != 0:
+        raise RuntimeError("Specified axis dimension (%d) is not a valid number of baselines" % nbl)
+    outshape = data.shape[:axis] + (nant,nant) + data.shape[axis+1:]
+    outidx = (slice(None),)*axis + np.tril_indices(nant,-1) + (slice(None),)*(ndim-axis-1)
+    out = np.zeros(outshape,dtype=data.dtype)
+    out[outidx] = data
+    return out
+
 def hanning(data, axis=0):
     """Apply hanning smoothing along the specified axis, typically this should
     be the spectral channel axis.  Modifies data array in-place."""
