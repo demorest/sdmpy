@@ -37,13 +37,14 @@ flags = sdm.scan(1).flags(sp_mjds,axis='ant')
 
 if nant==1:
     ants=['Y',]
-    outf=[sys.stdout,]
+    #outf=[sys.stdout,] # old behavior
+    outf=[open(sdmname+'.y.tsys','w')]
 else:
     ants = []
     outf = []
     for iant in range(nant):
         ants.append('Y%d' % (iant+1))
-        outf.append(open(sdmname+'.'+ants[iant]+'.tsys' ,'w'))
+        outf.append(open(sdmname+'.'+ants[iant].lower()+'.tsys' ,'w'))
 
 for i in range(nant):
     print('# TSYS file created by y1swpow.py', file=outf[i])
