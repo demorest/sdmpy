@@ -21,6 +21,7 @@ setup(
              'scripts/bdf_dedisperse_cut.py',
              'scripts/bdf_to_psrfits.py',
              'scripts/realfast_sdm_fix.py',
+             'scripts/realfast_sdm_fix_20A-346.py',
              'scripts/y1swpow.py',
              ]
 )
