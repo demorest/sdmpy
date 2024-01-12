@@ -115,7 +115,7 @@ class Scan(object):
         # table; here we just return the 0th order part of this.
 
         return sdmarray(self.sdm['Field'][self._main.fieldId].referenceDir,
-                        dtype=numpy.float)[0]
+                        dtype=float)[0]
 
     @property
     def intents(self):
@@ -149,7 +149,7 @@ class Scan(object):
 
         sdm_ants = sdmarray(self._config.antennaId)
         sdm_stns = [self.sdm['Antenna'][a].stationId for a in sdm_ants]
-        return [sdmarray(self.sdm['Station'][s].position, dtype=numpy.float)
+        return [sdmarray(self.sdm['Station'][s].position, dtype=float)
                 for s in sdm_stns]
 
     @property
@@ -266,7 +266,7 @@ class Scan(object):
                 for ispw in range(nspw):
                     tmp = self.sdm['CalDevice'][(sdm_ants[iant],
                         self.spws[ispw])].coupledNoiseCal
-                    out[iant,ispw,:] = sdmarray(tmp,dtype=numpy.float)[:,0]
+                    out[iant,ispw,:] = sdmarray(tmp,dtype=float)[:,0]
         else:
             raise NotImplementedError('Single spw not implemented yet')
         return out
