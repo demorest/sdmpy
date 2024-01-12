@@ -70,8 +70,8 @@ if args.template:
     # Check that number of bins matches.  Could implement template rebinning
     # at some point.
     if len(tmpl) != nbin:
-        print "Error, number of template bins (%d) does not match data (%d)" % (
-                len(tmpl), nbin)
+        print("Error, number of template bins (%d) does not match data (%d)" % (
+                len(tmpl), nbin))
         sys.exit(1)
     # Rescale template values to preserve mean flux, and mean-subtract:
     tmpl -= tmpl.min()
@@ -104,18 +104,18 @@ for scan in sdm.scans():
 
     if len(args.scan) and scan.idx not in args.scan:
         continue
-    print "Processing '%s' scan %s:" % (sdmname, scan.idx)
+    print("Processing '%s' scan %s:" % (sdmname, scan.idx))
 
     try:
         bdf = scan.bdf
     except IOError:
-        print "Error reading bdf for scan %s, skipping" % (scan.idx,)
+        print("Error reading bdf for scan %s, skipping" % (scan.idx,))
         continue
     if not scan.bdf.exists:
-        print "Missing bdf for scan %s, skipping" % (scan.idx,)
+        print("Missing bdf for scan %s, skipping" % (scan.idx,))
         continue
     if args.cal and bdf.spws[0].numBin != 2:
-        print "nbin!=2 for scan %s, skipping" % (scan.idx,)
+        print("nbin!=2 for scan %s, skipping" % (scan.idx,))
         continue
 
     # Get number of bins in scan, set up output nbin
@@ -137,21 +137,20 @@ for scan in sdm.scans():
             polys_new = tempo_utils.polycos.generate_from_polyco(
                     args.ephemeris, polys)
             if len(polys_new)==0:
-                print "Error generating polycos from '%s'" % args.ephemeris
-                print "Tempo output:"
-                print polys_new.tempo_output
+                print("Error generating polycos from '%s'" % args.ephemeris)
+                print("Tempo output:")
+                print(polys_new.tempo_output)
                 sys.exit(1)
             do_rephase = True
     if (nbin_scan>1 and args.dm!=0.0 and 
             polys is None and args.period is None):
-        print "Missing pulse period info for scan %s, skipping" % (scan.idx,)
+        print("Missing pulse period info for scan %s, skipping" % (scan.idx,))
         continue
 
     # Set up for output BDFs, copying header info from the input BDF
     # and changing nbin to 1.
-    bdfoutname = map(lambda x: x+'/'+os.path.basename(scan.bdf_fname), 
-            bdfoutpath[:nbin_out+1])
-    bdfout = map(lambda x: sdmpy.bdf.BDFWriter('',x,bdf=bdf), bdfoutname)
+    bdfoutname = [x+'/'+os.path.basename(scan.bdf_fname) for x in bdfoutpath[:nbin_out+1]]
+    bdfout = [sdmpy.bdf.BDFWriter('',x,bdf=bdf) for x in bdfoutname]
     for ibdf in bdfout: 
         for bb in ibdf.sdmDataHeader.dataStruct.baseband:
             for spw in bb.spectralWindow:
@@ -163,15 +162,15 @@ for scan in sdm.scans():
                 ds = ibdf.sdmDataHeader.dataStruct.__dict__[a]
                 if 'BIN' in ds.attrib['axes']:
                     sz = int(ds.attrib['size'])
-                    ds.attrib['size'] = str(sz/nbin_scan)
+                    ds.attrib['size'] = str(sz//nbin_scan)
             except KeyError:
                 pass
         ibdf.write_header()
 
     bar = progressbar.ProgressBar()
-    for i in bar(range(bdf.numIntegration)):
+    for i in bar(list(range(bdf.numIntegration))):
         fullint = bdf[i]
-        dtypes = fullint.data.keys()
+        dtypes = list(fullint.data.keys())
         binint = []
         if args.period is not None:
             period = args.period
