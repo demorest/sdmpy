@@ -119,7 +119,7 @@ class BinaryTableUnpacker(object):
         # Hack to convert type strings, used to make sure we get a str object
         # for strings in both py2 and py3.
         if dtype[0] == 'S':
-            return (numpy.str, int(dtype[1:]))
+            return (str, int(dtype[1:]))
         else:
             return dtype
 
