@@ -76,7 +76,7 @@ def applycal(data, caldata, axis=0, phaseonly=False):
     if phaseonly:
         icaldata = np.abs(caldata)/caldata
     else:
-        icaldata = 1.0/caldata
+        icaldata = 1.0/caldata + 0.0j
     icaldata[np.where(np.isfinite(icaldata) == False)] = 0.0j
     # Modifies data in place.  Would it be better to return a calibrated
     # copy instead of touching the original?
