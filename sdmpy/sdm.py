@@ -10,6 +10,7 @@ from operator import attrgetter
 
 from .scan import Scan
 from .mime import MIMEPart
+from .bintab import unpacker
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 _xsd_dir = os.path.join(_install_dir, 'xsd')
@@ -313,6 +314,7 @@ class SDMBinaryTable(object):
             # Probably some better way to handle this..
             pass
         fp.close()
+        self._unpacker = unpacker(self)
 
     def write(self, newpath, fname=None):
         if fname is None:
@@ -323,3 +325,12 @@ class SDMBinaryTable(object):
 
     def get_bytes(self, offs, nbytes):
         return self._data[self._doffs+offs:self._doffs+offs+nbytes]
+
+    @property
+    def data(self):
+        if not len(self._unpacker.row):
+            self._unpacker.unpack()
+        return self._unpacker.row
+
+    # TODO add __getitem__ access? Would be mostly just for consistency
+
