@@ -459,7 +459,7 @@ class BDFSpectralWindow(object):
     def dsize(self, type):
         """Return size of data array for this spectral window, in number of
         data elements (real for auto, complex for cross)."""
-        return numpy.product(self.dshape(type))
+        return numpy.prod(self.dshape(type))
 
     def mshape(self, corr):
         """Return shape tuple of metadata array for this spectral window
@@ -469,7 +469,7 @@ class BDFSpectralWindow(object):
     def msize(self, corr):
         """Return size of metadata array for this spectral window and
         correlation type (cross or auto)."""
-        return numpy.product(self.mshape(corr))
+        return numpy.prod(self.mshape(corr))
 
     @staticmethod
     def dims_match(spwlist, type):

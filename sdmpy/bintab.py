@@ -104,7 +104,7 @@ class BinaryTableUnpacker(object):
                 return val
             dsize = unpack.size
             if ndim:
-                ntot = numpy.product(dims)
+                ntot = numpy.prod(dims)
                 return numpy.array([unpack.unpack_from(self._readtab(dsize))[0]
                         for i in range(ntot)]).reshape(dims)
             else:
