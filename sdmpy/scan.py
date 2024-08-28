@@ -324,3 +324,43 @@ class Scan(object):
                     for ii in flagidx:
                         out[tidx, ii] = flagval
         return out
+
+    def syspower(self, field='requantizerGain'):
+        """
+        Return values from the SysPower table for this scan.  Dimensions
+        are appropriate to be applied to bdf.get_data() results.
+        """
+        ants = sdmarray(self._config.antennaId)
+        spws = self.spws
+
+        t0 = int(self._subscan.startTime)
+        t1 = int(self._subscan.endTime)
+
+        # Output should have dims (T, A, S, B, C, P)
+        # All will be length-1 except A, S, and P
+        # TODO deal with polarization axis better somehow.. 
+        # TODO allow time variation within a scan instead of mean
+        # TODO allow spw selection?
+        nant = len(ants)
+        nspw = len(spws)
+        npol = 2
+        d_out = (1, nant, nspw, 1, 1, npol)
+        out = numpy.zeros(d_out)
+
+        sp = self.sdm['SysPower'].data
+
+        for iant, ant in enumerate(ants):
+            for ispw, spw in enumerate(spws):
+                idx = numpy.where(
+                        (sp.timeMid > t0) *
+                        (sp.timeMid < t1) *
+                        (sp.antennaId == ant) *
+                        (sp.spectralWindowId == spw)
+                        )
+                if len(idx[0])==0: continue
+                val = sp[field][idx].mean(0)
+                out[0,iant,ispw,0,0,:] = val
+
+        return out
+
+
