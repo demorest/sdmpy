@@ -328,13 +328,27 @@ class Scan(object):
     def syspower(self, field='requantizerGain'):
         """
         Return values from the SysPower table for this scan.  Dimensions
-        are appropriate to be applied to bdf.get_data() results.
+        are appropriate to be applied to bdf.get_data() results.  Allowed
+        values for field are 'requantizerGain', 'switchedPowerSum'
+        and 'switchedPowerDifference'.  These can be abbreviated
+        to 'rq', 'psum' and 'pdif' respectively.
         """
         ants = sdmarray(self._config.antennaId)
         spws = self.spws
 
         t0 = int(self._subscan.startTime)
         t1 = int(self._subscan.endTime)
+
+        # Allow some less-verbose aliases
+        fields = {
+                'rq': 'requantizerGain',
+                'psum': 'switchedPowerSum',
+                'pdif': 'switchedPowerDifference'
+                }
+        try:
+            field = fields[field]
+        except KeyError:
+            pass
 
         # Output should have dims (T, A, S, B, C, P)
         # All will be length-1 except A, S, and P
@@ -344,7 +358,8 @@ class Scan(object):
         nant = len(ants)
         nspw = len(spws)
         npol = 2
-        d_out = (1, nant, nspw, 1, 1, npol)
+        ntime = 1
+        d_out = (ntime, nant, nspw, 1, 1, npol)
         out = numpy.zeros(d_out)
 
         sp = self.sdm['SysPower'].data
