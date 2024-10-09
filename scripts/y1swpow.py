@@ -92,7 +92,7 @@ for scan in sdm.scans():
         tsys = np.zeros(nspw*2)
         bands = ['z',] * nspw * 2
         while t0 < scan.endMJD:
-            for ispw, spw in enumerate(set(spws)):
+            for ispw, spw in enumerate(spws):
                 idx = np.where((sp_mjds>t0)
                         * (sp_mjds<(t0+interval))
                         * (sp.row.antennaId==ant)
