@@ -6,6 +6,25 @@ import sdmpy
 import sdmpy.bintab
 from sdmpy.scan import sdmarray
 
+# Convert VLA band naming to VLBA band naming
+def convert_band(vla_band):
+    bands = {
+            'P': '90cm',
+            'L': '20cm',
+            'S': '13cm',
+            'C': '6cm',
+            'X': '4cm',
+            'U': '2cm',
+            'Ku': '2cm',
+            'K': '1cm',
+            'Q': '7mm'
+            }
+    try:
+        vlba_band = bands[vla_band]
+    except KeyError:
+        vlba_band = vla_band
+    return vlba_band
+
 import argparse
 par = argparse.ArgumentParser(
         description="Produce VLBA-style tsys file from a single-antenna (Y1) VLA SDM.")
@@ -50,6 +69,7 @@ for i in range(nant):
     print('# TSYS file created by y1swpow.py', file=outf[i])
     print('# %s %.8f %.8f' % (ants[i], sdm.scan(1).startMJD,
             sdm.scan(len(sdm['Scan'])).endMJD), file=outf[i])
+    print("# antenna %s == %s" % (ants[i], str(sdm['Antenna'][i].name)), file=outf[i])
     print('# Files searched for swiched power data include:', file=outf[i])
     print('#   %s' % sdmname, file=outf[i])
     print('# ant D.O.Y. dur(days) nRecChan (tsys, bandName)[nRecChan]', file=outf[i])
@@ -93,7 +113,7 @@ for scan in sdm.scans():
                 else:
                     tsys[ispw*2] = 0.0
                     tsys[ispw*2+1] = 0.0 
-                band = str(sdm['Receiver'][spw].frequencyBand).replace('EVLA_','')
+                band = convert_band(str(sdm['Receiver'][spw].frequencyBand).replace('EVLA_',''))
                 bands[ispw*2] = band
                 bands[ispw*2+1] = band
             if dur>2.0/86400.: # require at least 2s of good data?
