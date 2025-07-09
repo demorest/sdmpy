@@ -55,9 +55,9 @@ sp_mjds = sp.row.timeMid / 86400.0e9
 flags = sdm.scan(1).flags(sp_mjds,axis='ant')
 
 if nant==1:
-    ants=['Y',]
+    ants=['Y1',]
     #outf=[sys.stdout,] # old behavior
-    outf=[open(sdmname+'.y.tsys','w')]
+    outf=[open(sdmname+'.y1.tsys','w')]
 else:
     ants = []
     outf = []
